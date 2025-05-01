@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Details</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="root"></div>
+    
+    <!-- Load React -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="data.js"></script>
+
+    <!-- React Application -->
+    <script type="text/babel">
+        // Property Details Component
+        function PropertyDetails() {
+            const [property, setProperty] = React.useState(null);
+            const [loading, setLoading] = React.useState(true);
+
+            React.useEffect(() => {
+                // Get property ID from URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const propertyId = parseInt(urlParams.get('id'));
+                
+                // Find the property
+                const foundProperty = PropertyData.getAll().find(p => p.id === propertyId);
+                setProperty(foundProperty);
+                setLoading(false);
+            }, []);
+
+            if (loading) {
+                return <div className="loading">Loading...</div>;
+            }
+
+            if (!property) {
+                return <div className="error">Property not found</div>;
+            }
+
+            return (
+                <div className="property-details-page">
+                    <header>
+                        <h1>{property.title}</h1>
+                        <a href="index.html" className="back-button">← Back to Listings</a>
+                    </header>
+                    
+                    <main>
+                        <div className="property-details-grid">
+                            <div className="property-gallery">
+                                <img src={property.image} alt={property.title} className="main-image" />
+                                {/* Additional images can be added here */}
+                            </div>
+                            <div className="property-info">
+                                <div className="price-section">
+                                    <h2>{property.price}</h2>
+                                    <p className="location">{property.location}</p>
+                                </div>
+                                <div className="property-features">
+                                    <div className="feature">
+                                        <span className="feature-label">Bedrooms</span>
+                                        <span className="feature-value">{property.bedrooms}</span>
+                                    </div>
+                                    <div className="feature">
+                                        <span className="feature-label">Bathrooms</span>
+                                        <span className="feature-value">{property.bathrooms}</span>
+                                    </div>
+                                    <div className="feature">
+                                        <span className="feature-label">Area</span>
+                                        <span className="feature-value">{property.area}</span>
+                                    </div>
+                                </div>
+                                <div className="property-description">
+                                    <h3>Description</h3>
+                                    <p>{property.description}</p>
+                                </div>
+                                <div className="property-actions">
+                                    <button className="contact-button">Contact Agent</button>
+                                    <button className="schedule-button">Schedule Viewing</button>
+                                </div>
+                            </div>
+                        </div>
+                    </main>
+                    
+                    <footer>
+                        <p>&copy; 2024 Real Estate Properties. All rights reserved.</p>
+                    </footer>
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<PropertyDetails />, document.getElementById('root'));
+    </script>
+</body>
+</html> 

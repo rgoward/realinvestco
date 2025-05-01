@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real Estate Properties</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="root"></div>
+    
+    <!-- Load React -->
+    <script src="https://unpkg.com/react@17/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <script src="data.js"></script>
+
+    <!-- React Application -->
+    <script type="text/babel">
+        // Property Card Component
+        function PropertyCard({ property }) {
+            return (
+                <div className="property-card">
+                    <img src={property.image} alt={property.title} />
+                    <div className="property-info">
+                        <h3>{property.title}</h3>
+                        <p className="price">{property.price}</p>
+                        <p className="location">{property.location}</p>
+                        <div className="property-details">
+                            <span>{property.bedrooms} beds</span>
+                            <span>{property.bathrooms} baths</span>
+                            <span>{property.area}</span>
+                        </div>
+                        <div className="property-actions">
+                            <a href={`property.html?id=${property.id}`} className="view-details">
+                                View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            );
+        }
+
+        // Search Component
+        function SearchBar({ onSearch }) {
+            const [location, setLocation] = React.useState("");
+            const [priceRange, setPriceRange] = React.useState("");
+
+            const handleSearch = () => {
+                onSearch({ location, priceRange });
+            };
+
+            return (
+                <div className="search-bar">
+                    <input 
+                        type="text" 
+                        placeholder="Search by location..." 
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                    />
+                    <select 
+                        value={priceRange}
+                        onChange={(e) => setPriceRange(e.target.value)}
+                    >
+                        <option value="">Price Range</option>
+                        <option value="0-300000">$0 - $300,000</option>
+                        <option value="300000-600000">$300,000 - $600,000</option>
+                        <option value="600000+">$600,000+</option>
+                    </select>
+                    <button onClick={handleSearch}>Search</button>
+                </div>
+            );
+        }
+
+        // Main App Component
+        function App() {
+            const [filteredProperties, setFilteredProperties] = React.useState(PropertyData.getAll());
+
+            const handleSearch = ({ location, priceRange }) => {
+                let filtered = PropertyData.getAll();
+
+                if (location) {
+                    filtered = filtered.filter(property => 
+                        property.location.toLowerCase().includes(location.toLowerCase())
+                    );
+                }
+
+                if (priceRange) {
+                    const [min, max] = priceRange.split('-').map(Number);
+                    filtered = filtered.filter(property => {
+                        const price = Number(property.price.replace(/[^0-9]/g, ''));
+                        if (max) {
+                            return price >= min && price <= max;
+                        } else {
+                            return price >= min;
+                        }
+                    });
+                }
+
+                setFilteredProperties(filtered);
+            };
+
+            return (
+                <div className="app">
+                    <header>
+                        <h1>Real Estate Properties</h1>
+                        <SearchBar onSearch={handleSearch} />
+                    </header>
+                    <main>
+                        <div className="properties-grid">
+                            {filteredProperties.map(property => (
+                                <PropertyCard 
+                                    key={property.id} 
+                                    property={property}
+                                />
+                            ))}
+                        </div>
+                    </main>
+                    <footer>
+                        <p>&copy; 2024 Real Estate Properties. All rights reserved.</p>
+                    </footer>
+                </div>
+            );
+        }
+
+        // Render the app
+        ReactDOM.render(<App />, document.getElementById('root'));
+    </script>
+</body>
+</html> 
