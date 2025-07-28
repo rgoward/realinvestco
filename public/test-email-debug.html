@@ -3,213 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Email Function Test - Real InvestCo</title>
-    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
-    <meta http-equiv="Pragma" content="no-cache">
-    <meta http-equiv="Expires" content="0">
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js?v=3"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js?v=3"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js?v=3"></script>
+    <title>Email Function Test</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            background: #f4f6fb; 
-            color: #333; 
-            margin: 0;
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
             padding: 20px;
+            background-color: #f5f5f5;
         }
-        .container { 
-            max-width: 800px; 
-            margin: 0 auto; 
-            background: #fff; 
-            border-radius: 12px; 
-            box-shadow: 0 4px 24px rgba(0,0,0,0.08); 
-            padding: 32px; 
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
         }
-        h1 { 
-            text-align: center; 
-            color: #1A237E; 
-            margin-bottom: 24px; 
-        }
-        .test-btn {
-            background: #ff9800;
+        button {
+            background: #007bff;
             color: white;
             border: none;
             padding: 12px 24px;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 600;
+            border-radius: 5px;
             cursor: pointer;
-            margin: 10px;
+            margin: 10px 5px;
+            font-size: 16px;
         }
-        .test-btn:hover {
-            background: #f57c00;
+        button:hover {
+            background: #0056b3;
         }
-        .status {
-            margin: 20px 0;
+        .log-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 5px;
             padding: 15px;
-            border-radius: 6px;
-            font-weight: 600;
+            margin-top: 20px;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
         }
         .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            color: #28a745;
         }
         .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            color: #dc3545;
         }
         .info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-        .log {
-            background: #f8f9fa;
-            border: 1px solid #e9ecef;
-            border-radius: 6px;
-            padding: 15px;
-            margin: 10px 0;
-            font-family: monospace;
-            font-size: 12px;
-            max-height: 300px;
-            overflow-y: auto;
+            color: #17a2b8;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Email Function Debug Test</h1>
-        
-        <div id="status" class="status info">Ready to test email functions</div>
+        <h1>Email Function Test Page</h1>
+        <p>This page tests the email functions directly to help debug issues.</p>
         
         <div>
-            <button class="test-btn" onclick="testSMTP()">Test SMTP Function</button>
-            <button class="test-btn" onclick="testAPI()">Test API Function</button>
-            <button class="test-btn" onclick="clearLog()">Clear Log</button>
+            <button onclick="testSendEmailSMTP()">Test sendEmailSMTP</button>
+            <button onclick="testColdOutreach()">Test testColdOutreach</button>
+            <button onclick="clearLog()">Clear Log</button>
         </div>
         
-        <div class="log" id="log"></div>
+        <div class="log-area" id="logArea">
+            Ready to test email functions...
+        </div>
     </div>
 
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-functions-compat.js"></script>
+
     <script>
-        // Initialize Firebase
+        // Firebase configuration
         const firebaseConfig = {
             apiKey: "AIzaSyBqXqXqXqXqXqXqXqXqXqXqXqXqXqXqXq",
             authDomain: "realinvestco-web.firebaseapp.com",
             projectId: "realinvestco-web",
             storageBucket: "realinvestco-web.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdefghijklmnop"
+            messagingSenderId: "123456789012",
+            appId: "1:123456789012:web:abcdefghijklmnop"
         };
 
+        // Initialize Firebase
         firebase.initializeApp(firebaseConfig);
-        const auth = firebase.auth();
-        const db = firebase.firestore();
+        const functions = firebase.functions();
 
-        function log(message) {
-            const logDiv = document.getElementById('log');
+        function log(message, type = 'info') {
+            const logArea = document.getElementById('logArea');
             const timestamp = new Date().toLocaleTimeString();
-            logDiv.innerHTML += `[${timestamp}] ${message}\n`;
-            logDiv.scrollTop = logDiv.scrollHeight;
-        }
-
-        function showStatus(message, type) {
-            const statusDiv = document.getElementById('status');
-            statusDiv.textContent = message;
-            statusDiv.className = `status ${type}`;
-        }
-
-        async function testSMTP() {
-            try {
-                log('=== TESTING SMTP FUNCTION ===');
-                log('Current timestamp: ' + new Date().toISOString());
-                
-                const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/sendEmailSMTP', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        testEmail: 'test@example.com',
-                        testName: 'Test User'
-                    })
-                });
-
-                log('SMTP Response status: ' + response.status);
-                log('SMTP Response ok: ' + response.ok);
-
-                if (response.ok) {
-                    const result = await response.json();
-                    log('SMTP Response result: ' + JSON.stringify(result, null, 2));
-                    
-                    if (result.success) {
-                        log('SMTP email sent successfully!');
-                        showStatus('SMTP test successful!', 'success');
-                    } else {
-                        log('SMTP response success field is false: ' + JSON.stringify(result));
-                        showStatus('SMTP test failed: ' + (result.error || 'Unknown error'), 'error');
-                    }
-                } else {
-                    log('SMTP response not ok, status: ' + response.status);
-                    showStatus('SMTP test failed: HTTP ' + response.status, 'error');
-                }
-            } catch (error) {
-                log('SMTP test error: ' + error.message);
-                showStatus('SMTP test error: ' + error.message, 'error');
-            }
-        }
-
-        async function testAPI() {
-            try {
-                log('=== TESTING API FUNCTION ===');
-                log('Current timestamp: ' + new Date().toISOString());
-                
-                const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/testColdOutreach', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        testEmail: 'test@example.com',
-                        testName: 'Test User'
-                    })
-                });
-
-                log('API Response status: ' + response.status);
-                log('API Response ok: ' + response.ok);
-
-                if (response.ok) {
-                    const result = await response.json();
-                    log('API Response result: ' + JSON.stringify(result, null, 2));
-                    
-                    if (result.success) {
-                        log('API email sent successfully!');
-                        showStatus('API test successful!', 'success');
-                    } else {
-                        log('API response success field is false: ' + JSON.stringify(result));
-                        showStatus('API test failed: ' + (result.error || 'Unknown error'), 'error');
-                    }
-                } else {
-                    log('API response not ok, status: ' + response.status);
-                    showStatus('API test failed: HTTP ' + response.status, 'error');
-                }
-            } catch (error) {
-                log('API test error: ' + error.message);
-                showStatus('API test error: ' + error.message, 'error');
-            }
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : 'info';
+            logArea.innerHTML += `[${timestamp}] <span class="${className}">${message}</span>\n`;
+            logArea.scrollTop = logArea.scrollHeight;
         }
 
         function clearLog() {
-            document.getElementById('log').innerHTML = '';
-            showStatus('Log cleared', 'info');
+            document.getElementById('logArea').innerHTML = 'Log cleared...\n';
         }
 
-        // Initialize
-        log('Page loaded at: ' + new Date().toISOString());
-        log('Firebase initialized');
+        async function testSendEmailSMTP() {
+            log('Testing sendEmailSMTP function...', 'info');
+            
+            try {
+                const sendEmailSMTP = functions.httpsCallable('sendEmailSMTP');
+                
+                const testData = {
+                    to: 'test@example.com',
+                    subject: 'Test Email from SMTP',
+                    message: 'This is a test email sent via SMTP.',
+                    fromName: 'Test Sender'
+                };
+                
+                log('Calling sendEmailSMTP with data:', 'info');
+                log(JSON.stringify(testData, null, 2), 'info');
+                
+                const result = await sendEmailSMTP(testData);
+                
+                log('sendEmailSMTP Response Status: ' + (result.data ? 'Success' : 'Failed'), 'info');
+                log('sendEmailSMTP Response Data:', 'info');
+                log(JSON.stringify(result.data, null, 2), result.data && result.data.success ? 'success' : 'error');
+                
+                if (result.data && result.data.success) {
+                    log('✅ sendEmailSMTP test PASSED', 'success');
+                } else {
+                    log('❌ sendEmailSMTP test FAILED', 'error');
+                }
+                
+            } catch (error) {
+                log('❌ sendEmailSMTP Error: ' + error.message, 'error');
+                log('Error details: ' + JSON.stringify(error, null, 2), 'error');
+            }
+        }
+
+        async function testColdOutreach() {
+            log('Testing testColdOutreach function...', 'info');
+            
+            try {
+                const testColdOutreach = functions.httpsCallable('testColdOutreach');
+                
+                const testData = {
+                    to: 'test@example.com',
+                    subject: 'Test Email from Brevo API',
+                    message: 'This is a test email sent via Brevo API.',
+                    fromName: 'Test Sender'
+                };
+                
+                log('Calling testColdOutreach with data:', 'info');
+                log(JSON.stringify(testData, null, 2), 'info');
+                
+                const result = await testColdOutreach(testData);
+                
+                log('testColdOutreach Response Status: ' + (result.data ? 'Success' : 'Failed'), 'info');
+                log('testColdOutreach Response Data:', 'info');
+                log(JSON.stringify(result.data, null, 2), result.data && result.data.success ? 'success' : 'error');
+                
+                if (result.data && result.data.success) {
+                    log('✅ testColdOutreach test PASSED', 'success');
+                } else {
+                    log('❌ testColdOutreach test FAILED', 'error');
+                }
+                
+            } catch (error) {
+                log('❌ testColdOutreach Error: ' + error.message, 'error');
+                log('Error details: ' + JSON.stringify(error, null, 2), 'error');
+            }
+        }
+
+        // Auto-test on page load
+        window.onload = function() {
+            log('Page loaded. Ready to test email functions.', 'info');
+        };
     </script>
 </body>
 </html> 
