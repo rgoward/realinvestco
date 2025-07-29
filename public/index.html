@@ -1,192 +1,377 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Real InvestCo - Real Estate Investment Opportunities</title>
-    <link rel="stylesheet" href="styles.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <meta charset="UTF-8">
+  <title>Real InvestCo Property</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <link rel="stylesheet" href="styles.css">
+  <script>
+    // Your web app's Firebase configuration
+    const firebaseConfig = {
+      apiKey: "AIzaSyDXifeppD7kBgpgwu74Aa-5h6t_4ieFwq0",
+      authDomain: "realinvestco-web.firebaseapp.com",
+      projectId: "realinvestco-web",
+      storageBucket: "realinvestco-web.firebasestorage.app",
+      messagingSenderId: "1021426656860",
+      appId: "1:1021426656860:web:1a1f9cb16b3f0a2158a899",
+      measurementId: "G-X30NR9MZGP"
+    };
+
+    // Initialize Firebase
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+  </script>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f6fb;
+    }
+    .hero {
+      background: url('Pics/homepage-bg.png') no-repeat center center/cover;
+      min-height: 100vh;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-container {
+      position: absolute;
+      top: 30px;
+      left: 1in;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .logo-absolute {
+      max-width: 150px;
+      max-height: 80px;
+      background: rgba(255,255,255,1); /* Changed to fully opaque white */
+      border-radius: 16px;
+      padding: 15px 25px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      display: inline-block;
+    }
+    .headline {
+      font-size: 2.5em;
+      color: #1A237E;
+      margin-bottom: 0.5em;
+      font-weight: 700;
+      text-shadow: 0 2px 8px rgba(255,255,255,0.7);
+    }
+    .subtitle-container {
+      margin-top: 0.25in;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .subtitle {
+      font-size: 1.3em;
+      color: #333;
+      background: rgba(255,255,255,1); /* Solid white */
+      padding: 0.5em 1.5em;
+      border-radius: 8px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      text-align: center;
+      width: fit-content;
+    }
+    .cta-btn {
+      margin-top: 0.25in; /* 1/4 inch spacing below subtitle */
+      padding: 0.5em 1.5em;
+      font-size: 1.2em;
+      background: #1A237E;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(26,35,126,0.15);
+      transition: background 0.2s, color 0.2s;
+      cursor: pointer;
+      display: inline-block;
+      text-align: center;
+    }
+    .cta-btn:hover {
+      background: #FFD700;
+      color: #1A237E;
+    }
+    @media (max-width: 600px) {
+      .headline { font-size: 1.5em; }
+      .logo-absolute { max-width: 90vw; padding: 10px 5vw; }
+      .logo-container {
+        position: relative;
+        top: 0.25in;
+        left: 0;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+    
+    /* Contact Form Styles */
+    .contact-section {
+      padding: 80px 20px;
+      background: #fff;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .contact-container {
+      max-width: 1200px;
+      width: 100%;
+      display: flex;
+      gap: 48px;
+      align-items: flex-start;
+      justify-content: center;
+    }
+    .contact-info {
+      flex: 0 0 400px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 40px;
+      border: 1px solid #eee;
+    }
+    .contact-info h2 {
+      margin: 0 0 24px 0;
+      font-size: 2em;
+      font-weight: 700;
+      color: #1A237E;
+    }
+    .contact-info p {
+      font-size: 1.1em;
+      color: #333;
+      line-height: 1.6;
+      margin-bottom: 20px;
+    }
+    .contact-card {
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+      padding: 40px;
+      max-width: 500px;
+      min-width: 500px;
+      border: 1px solid #eee;
+      flex: 0 0 500px;
+    }
+    .contact-card h3 {
+      margin: 0 0 24px 0;
+      font-size: 1.5em;
+      font-weight: 600;
+      color: #1A237E;
+    }
+    .contact-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .form-group label {
+      font-weight: 500;
+      color: #333;
+      font-size: 0.95em;
+    }
+    .form-group input,
+    .form-group textarea {
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 6px;
+      font-size: 0.95em;
+      transition: border-color 0.2s;
+    }
+    .form-group input:focus,
+    .form-group textarea:focus {
+      outline: none;
+      border-color: #1A237E;
+    }
+    .checkbox-label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+      font-size: 0.95em;
+    }
+    .checkbox-label input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+    }
+    .submit-button {
+      background: #1A237E;
+      color: white;
+      border: none;
+      padding: 12px 24px;
+      border-radius: 6px;
+      font-size: 1em;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      margin-top: 8px;
+    }
+    .submit-button:hover {
+      background: #283593;
+    }
+    @media (max-width: 1200px) {
+      .contact-container {
+        flex-direction: column;
+        align-items: center;
+      }
+      .contact-info, .contact-card {
+        max-width: 100%;
+        min-width: unset;
+      }
+    }
+    
+    .link-bar {
+        position: absolute;
+        top: 30px;
+        left: 900px;
+        background: #1A237E;
+        border-radius: 6px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        padding: 10px 24px 8px 24px;
+        display: flex;
+        gap: 28px;
+        z-index: 10;
+    }
+    .link-bar a {
+        color: #fff;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 1.15em;
+        transition: color 0.2s;
+    }
+    .link-bar a:hover {
+        color: #FFD700;
+        text-shadow: 0 2px 8px rgba(26,144,255,0.15);
+    }
+    @media (max-width: 600px) {
+        .link-bar {
+            position: static;
+            margin: 0 auto 16px auto;
+            padding: 10px 5vw 5px 5vw;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+    }
+    .logo-absolute img {
+      max-width: 100%;
+      height: auto;
+      object-fit: contain;
+    }
+  </style>
 </head>
 <body>
-    <header>
-        <nav>
-            <div class="nav-container">
-                <div class="logo">
-                    <img src="Pics/logo.png" alt="Real InvestCo Logo">
-                </div>
-                <ul class="nav-links">
-                    <li><a href="#home">Home</a></li>
-                    <li><a href="#properties">Properties</a></li>
-                    <li><a href="#about">About</a></li>
-                    <li><a href="#contact">Contact</a></li>
-                </ul>
-            </div>
-        </nav>
-    </header>
+  <nav class="link-bar">
+    <a href="index.html">Home</a>
+    <a href="properties.html">Properties</a>
+    <a href="properties-table.html">Properties Spreadsheet</a>
+    <a href="contact.html">Contact US</a>
+  </nav>
+  <div class="hero">
+    <div class="logo-container">
+      <div class="logo-absolute">
+        <img src="Pics/logo.png" alt="Real InvestCo Logo">
+      </div>
+      <div class="subtitle-container">
+        <div class="subtitle">Your partner for real estate investments.</div>
+        <a href="properties.html" class="cta-btn">View Properties</a>
+      </div>
+    </div>
+  </div>
 
-    <main>
-        <section id="home" class="hero">
-            <div class="hero-content">
-                <h1>Real Estate Investment Opportunities</h1>
-                <p>Discover exclusive real estate investment opportunities with Real InvestCo. We specialize in wholesale deals, fix-and-flip properties, and long-term rental investments.</p>
-                <div class="hero-buttons">
-                    <a href="#properties" class="btn btn-primary">View Properties</a>
-                    <a href="#contact" class="btn btn-secondary">Get Started</a>
-                </div>
-            </div>
-        </section>
+  <script>
+    // Auto-fill propertyId if on a property page (optional, for property.html)
+    if (window.location.pathname.includes('property.html')) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const propId = urlParams.get('id');
+      if (propId) document.getElementById('propertyId').value = propId;
+    }
 
-        <section id="properties" class="properties">
-            <div class="container">
-                <h2>Featured Properties</h2>
-                <div class="properties-grid" id="propertiesGrid">
-                    <!-- Properties will be loaded here -->
-                </div>
-            </div>
-        </section>
+    const contactForm = document.getElementById('contactForm');
+    const formContainer = document.getElementById('form-container');
+    const formSuccess = document.getElementById('form-success-message');
+    const continueBtn = document.getElementById('continue-button');
 
-        <section id="about" class="about">
-            <div class="container">
-                <h2>About Real InvestCo</h2>
-                <div class="about-content">
-                    <div class="about-text">
-                        <p>Real InvestCo is your trusted partner in real estate investment. We specialize in identifying and securing the best investment opportunities in the market.</p>
-                        <p>Our team of experienced professionals works tirelessly to find properties that offer excellent returns on investment, whether you're looking for wholesale deals, fix-and-flip opportunities, or long-term rental properties.</p>
-                    </div>
-                    <div class="about-stats">
-                        <div class="stat">
-                            <h3>15-25%</h3>
-                            <p>Average ROI</p>
-                        </div>
-                        <div class="stat">
-                            <h3>100+</h3>
-                            <p>Properties Sold</p>
-                        </div>
-                        <div class="stat">
-                            <h3>5+</h3>
-                            <p>Years Experience</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
+    contactForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const submitButton = form.querySelector('.submit-button');
+      submitButton.disabled = true;
+      submitButton.textContent = 'Sending...';
 
-        <section id="contact" class="contact">
-            <div class="container">
-                <h2>Get In Touch</h2>
-                <div class="contact-content">
-                    <div class="contact-info">
-                        <h3>Ready to Invest?</h3>
-                        <p>Contact us today to learn more about our investment opportunities and how we can help you achieve your real estate investment goals.</p>
-                        <div class="contact-details">
-                            <div class="contact-item">
-                                <strong>Phone:</strong> (555) 123-4567
-                            </div>
-                            <div class="contact-item">
-                                <strong>Email:</strong> info@realinvestco.com
-                            </div>
-                            <div class="contact-item">
-                                <strong>Address:</strong> 123 Investment Ave, Phoenix, AZ 85001
-                            </div>
-                        </div>
-                    </div>
-                    <div class="contact-form">
-                        <form id="contactForm">
-                            <div class="form-group">
-                                <label for="name">Name</label>
-                                <input type="text" id="name" name="name" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="email">Email</label>
-                                <input type="email" id="email" name="email" required>
-                            </div>
-                            <div class="form-group">
-                                <label for="phone">Phone</label>
-                                <input type="tel" id="phone" name="phone">
-                            </div>
-                            <div class="form-group">
-                                <label for="message">Message</label>
-                                <textarea id="message" name="message" rows="4" required></textarea>
-                            </div>
-                            <button type="submit" class="btn btn-primary">Send Message</button>
-                        </form>
-                    </div>
-                </div>
-            </div>
-        </section>
-    </main>
+      const formData = {
+        propertyId: form.propertyId.value.trim(),
+        name: form.name.value.trim(),
+        email: form.email.value.trim(),
+        cellPhone: form.cellPhone.value.trim(),
+        landline: form.landline.value.trim(),
+        message: form.message.value.trim(),
+        newsletter: form.newsletter.checked,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      };
 
-    <footer>
-        <div class="container">
-            <div class="footer-content">
-                <div class="footer-section">
-                    <h3>Real InvestCo</h3>
-                    <p>Your trusted partner in real estate investment opportunities.</p>
-                </div>
-                <div class="footer-section">
-                    <h4>Quick Links</h4>
-                    <ul>
-                        <li><a href="#home">Home</a></li>
-                        <li><a href="#properties">Properties</a></li>
-                        <li><a href="#about">About</a></li>
-                        <li><a href="#contact">Contact</a></li>
-                    </ul>
-                </div>
-                <div class="footer-section">
-                    <h4>Contact Info</h4>
-                    <p>Phone: (555) 123-4567</p>
-                    <p>Email: info@realinvestco.com</p>
-                    <p>Address: 123 Investment Ave, Phoenix, AZ 85001</p>
-                </div>
-            </div>
-            <div class="footer-bottom">
-                <p>&copy; 2024 Real InvestCo. All rights reserved.</p>
-            </div>
-        </div>
-    </footer>
+      try {
+        // Validate required fields
+        if (!formData.name || !formData.email || !formData.cellPhone || !formData.message) {
+          throw new Error('Please fill in all required fields.');
+        }
+        // Save to Firestore (generalInquiries or propertyInquiries based on propertyId)
+        const collection = formData.propertyId ? 'propertyInquiries' : 'generalInquiries';
+        await db.collection(collection).add(formData);
 
-    <script src="data.js"></script>
-    <script src="app.js"></script>
-    <script>
-        // Contact form handling
-        document.getElementById('contactForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            
-            const formData = {
-                name: document.getElementById('name').value,
-                email: document.getElementById('email').value,
-                phone: document.getElementById('phone').value,
-                message: document.getElementById('message').value
-            };
+        // If newsletter is checked, send to Brevo
+        if (formData.newsletter) {
+          await fetch('https://api.brevo.com/v3/contacts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'api-key': 'YOUR_BREVO_API_KEY_HERE',
+            },
+            body: JSON.stringify({
+              email: formData.email,
+              attributes: {
+                FIRSTNAME: formData.name,
+                PROPERTYID: formData.propertyId || '',
+                CELLPHONE: formData.cellPhone,
+                LANDLINE: formData.landline,
+                MESSAGE: formData.message
+              },
+              listIds: [], // Optionally add to specific list(s) by ID
+              updateEnabled: true
+            })
+          });
+        }
+        // Show success message
+        formContainer.style.display = 'none';
+        formSuccess.style.display = 'block';
+      } catch (error) {
+        alert(error.message || 'There was an error submitting your message. Please try again.');
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Send Message';
+      }
+    });
 
-            try {
-                const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/sendEmailSMTP', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'api-key': 'YOUR_BREVO_API_KEY_HERE',
-                    },
-                    body: JSON.stringify({
-                        to: 'info@realinvestco.com',
-                        subject: 'New Contact Form Submission',
-                        name: formData.name,
-                        email: formData.email,
-                        phone: formData.phone,
-                        message: formData.message
-                    })
-                });
-
-                if (response.ok) {
-                    alert('Thank you for your message! We will get back to you soon.');
-                    document.getElementById('contactForm').reset();
-                } else {
-                    alert('There was an error sending your message. Please try again.');
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('There was an error sending your message. Please try again.');
-            }
-        });
-    </script>
+    continueBtn.addEventListener('click', () => {
+      formSuccess.style.display = 'none';
+      formContainer.style.display = 'block';
+      contactForm.reset();
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+  </script>
 </body>
 </html>
