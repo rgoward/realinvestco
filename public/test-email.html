@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Email Test</title>
+</head>
+<body>
+    <h1>Email Test</h1>
+    
+    <form id="emailForm">
+        <p>
+            <label>Email: <input type="email" id="email" required></label>
+        </p>
+        <p>
+            <label>Name: <input type="text" id="name"></label>
+        </p>
+        <p>
+            <button type="submit">Send Test Email</button>
+        </p>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        document.getElementById('emailForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const email = document.getElementById('email').value;
+            const name = document.getElementById('name').value || 'Test User';
+            const result = document.getElementById('result');
+            
+            result.innerHTML = 'Sending...';
+            
+            try {
+                const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/testColdOutreach', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        testEmail: email,
+                        testName: name
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    result.innerHTML = `
+                        <h3 style="color: green;">✅ Success!</h3>
+                        <p>Email sent to: ${data.sentTo}</p>
+                        <p>Subject: ${data.subject}</p>
+                        <p>Message ID: ${data.messageId}</p>
+                    `;
+                } else {
+                    result.innerHTML = `
+                        <h3 style="color: red;">❌ Error</h3>
+                        <p>${data.error}</p>
+                    `;
+                }
+            } catch (error) {
+                result.innerHTML = `
+                    <h3 style="color: red;">❌ Network Error</h3>
+                    <p>${error.message}</p>
+                `;
+            }
+        });
+    </script>
+</body>
+</html> 

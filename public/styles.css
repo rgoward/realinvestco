@@ -1,0 +1,536 @@
+    /* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    line-height: 1.6;
+    color: #333;
+}
+
+/* App container */
+.app {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+/* Header styles */
+header {
+    text-align: center;
+    margin-bottom: 40px;
+}
+
+header h1 {
+    color: #2c3e50;
+    margin-bottom: 20px;
+}
+
+/* Search bar styles */
+.search-bar {
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+    margin-bottom: 30px;
+}
+
+.search-bar input,
+.search-bar select {
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 16px;
+}
+
+.search-bar button {
+    padding: 10px 20px;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.search-bar button:hover {
+    background-color: #2980b9;
+}
+
+/* Properties grid */
+.properties-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 384px);
+    gap: 0 !important;
+    margin-bottom: 40px;
+    justify-content: center;
+}
+
+/* Property card styles */
+.property-card {
+    border: 1px solid #ddd;
+    border-radius: 8px !important;
+    overflow: hidden;
+    transition: transform 0.3s;
+}
+
+.property-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.property-card img {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+.property-card .property-info {
+    padding: 12px 16px !important;
+}
+
+.property-card .property-info h3 {
+    margin-bottom: 4px !important;
+    margin-top: 0 !important;
+    font-size: 1.15em;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: unset !important;
+    word-break: break-word !important;
+}
+
+.property-card .price-arv-columns {
+    gap: 18px !important;
+    margin-bottom: 0 !important;
+    margin-top: -40px !important;
+}
+
+.property-card .location-zip-row {
+    margin-top: -37px !important;
+    margin-bottom: 4px !important;
+}
+
+.property-card .property-details {
+    margin-bottom: 4px !important;
+    font-size: 1em;
+    margin-top: -43px !important;
+}
+
+.price {
+    font-size: 1.2em;
+    font-weight: bold;
+    color: #e74c3c;
+    margin-bottom: 5px;
+}
+
+.location-zip-row {
+    color: black !important;
+    margin-bottom: 15px;
+}
+
+.location-zip-row span {
+    color: black;
+}
+
+.property-details {
+    display: flex;
+    justify-content: space-between;
+    color: black;
+    font-size: 1.1em;
+}
+
+.property-details span {
+    color: black;
+}
+
+/* Footer styles */
+footer {
+    text-align: center;
+    padding: 20px;
+    border-top: 1px solid #ddd;
+    color: #7f8c8d;
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+    .search-bar {
+        flex-direction: column;
+    }
+    
+    .search-bar input,
+    .search-bar select,
+    .search-bar button {
+        width: 100%;
+    }
+    
+    .properties-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Property Details Page */
+.property-details-page {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.property-details-page header {
+    margin-bottom: 30px;
+    position: relative;
+}
+
+.back-button {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    text-decoration: none;
+    color: #3498db;
+    font-weight: 500;
+    padding: 8px 16px;
+    border: 2px solid #3498db;
+    border-radius: 4px;
+    transition: all 0.3s ease;
+}
+
+.back-button:hover {
+    background-color: #3498db;
+    color: white;
+}
+
+.property-gallery {
+    margin-bottom: 30px;
+}
+
+.main-image {
+    width: 100%;
+    max-height: 500px;
+    object-fit: cover;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.property-info {
+    display: grid;
+    gap: 30px;
+}
+
+.price-section h2 {
+    color: #2c3e50;
+    margin: 0;
+    font-size: 2em;
+}
+
+.location {
+    color: #7f8c8d;
+    font-size: 1.2em;
+    margin-top: 5px;
+}
+
+.property-features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 20px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.feature {
+    text-align: center;
+}
+
+.feature-label {
+    display: block;
+    color: #7f8c8d;
+    font-size: 0.9em;
+    margin-bottom: 5px;
+}
+
+.feature-value {
+    font-size: 1.2em;
+    font-weight: 500;
+    color: #2c3e50;
+}
+
+.property-description {
+    line-height: 1.6;
+}
+
+.property-description h3 {
+    color: #2c3e50;
+    margin-bottom: 15px;
+}
+
+.property-actions {
+    display: flex;
+    gap: 15px;
+    margin-top: 30px;
+}
+
+.contact-button,
+.schedule-button {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 4px;
+    font-size: 1em;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.contact-button {
+    background-color: #3498db;
+    color: white;
+}
+
+.schedule-button {
+    background-color: #2ecc71;
+    color: white;
+}
+
+.contact-button:hover {
+    background-color: #2980b9;
+}
+
+.schedule-button:hover {
+    background-color: #27ae60;
+}
+
+.loading,
+.error {
+    text-align: center;
+    padding: 50px;
+    font-size: 1.2em;
+    color: #7f8c8d;
+}
+
+.error {
+    color: #e74c3c;
+}
+
+/* Update view-details button to look like a link */
+.view-details {
+    display: inline-block;
+    padding: 8px 16px;
+    background-color: #3498db;
+    color: white;
+    text-decoration: none;
+    border-radius: 4px;
+    transition: background-color 0.3s ease;
+}
+
+.view-details:hover {
+    background-color: #2980b9;
+}
+
+/* Property Details Page Grid Layout */
+.property-details-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr;
+    gap: 40px;
+    align-items: flex-start;
+}
+
+.property-gallery {
+    margin-bottom: 0;
+}
+
+.property-info {
+    background: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    padding: 30px 24px;
+    min-width: 320px;
+    max-width: 400px;
+    margin: 0 auto;
+}
+
+@media (max-width: 900px) {
+    .property-details-grid {
+        grid-template-columns: 1fr;
+        gap: 30px;
+    }
+    .property-info {
+        max-width: 100%;
+        min-width: 0;
+        padding: 20px 10px;
+    }
+}
+
+@media (max-width: 600px) {
+    .property-details-page {
+        padding: 10px;
+    }
+    .property-info {
+        padding: 10px 2px;
+    }
+    .main-image {
+        max-height: 250px;
+    }
+} 
+
+.login-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background-color: #f5f5f5;
+}
+
+.login-box {
+    background: white;
+    padding: 2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+    width: 100%;
+    max-width: 400px;
+}
+
+.login-box h1 {
+    text-align: center;
+    color: #2c3e50;
+    margin-bottom: 1.5rem;
+}
+
+.login-form .form-group {
+    margin-bottom: 1rem;
+}
+
+.login-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #2c3e50;
+}
+
+.login-form input {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+}
+
+.login-button {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #3498db;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.login-button:hover {
+    background-color: #2980b9;
+}
+
+.error-message {
+    color: #e74c3c;
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.property-card-title {
+    font-size: 2em;
+    font-weight: 700;
+    color: #2c3e50;
+    margin-bottom: 20px;
+    margin-top: 0;
+    text-align: left;
+}
+
+.property-header-stack {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    margin: 0 auto 12px auto;
+    padding-top: 32px;
+}
+
+.property-title-centered {
+    text-align: center;
+    font-size: 1.5em;
+    font-weight: 600;
+    color: #1A237E;
+    margin-bottom: 16px;
+}
+
+/* --- Property Card Price/ARV Columns Styling (shared with property.html) --- */
+.price-arv-columns {
+    display: flex;
+    gap: 40px;
+    margin-bottom: 8px;
+}
+.price-arv-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+.wholesale-cost-label, .arv-label {
+    font-size: 1em;
+    color: #333;
+    font-weight: 500;
+    margin-bottom: 2px;
+}
+.wholesale-cost-value {
+    font-size: 1.2em;
+    color: #d32f2f;
+    font-weight: 700;
+}
+.arv-value {
+    font-size: 1.2em;
+    color: #388e3c;
+    font-weight: 700;
+}
+
+.view-details-box {
+    background-color: #3498db;
+    color: white;
+    text-align: center;
+    border-radius: 4px;
+    padding: 10px 0;
+    margin-top: -40px;
+    font-weight: 500;
+    font-size: 1em;
+    width: 100%;
+    display: block;
+}
+
+.link-bar {
+    position: absolute;
+    top: 30px;
+    left: 900px;
+    background: #1A237E;
+    border-radius: 6px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    height: 46px;
+    padding: 0 24px;
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    z-index: 10;
+    width: auto;
+    min-width: unset;
+    max-width: unset;
+    margin-bottom: 24px;
+}
+
+.link-bar a {
+    color: #fff !important;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 1.15em;
+    transition: color 0.2s;
+}
+
+.link-bar a:hover {
+    color: #FFD700 !important;
+    text-shadow: 0 2px 8px rgba(26,144,255,0.15);
+}
