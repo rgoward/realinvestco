@@ -764,3 +764,166 @@ Real InvestCo`;
     });
   }
 }); 
+
+// Multi-template email function for different regions
+exports.sendEmailMultiTemplate = functions.https.onRequest(async (req, res) => {
+  // Enable CORS
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const { testEmail, testName, customSubject, templateId } = req.body;
+    
+    if (!testEmail) {
+      return res.status(400).json({ error: 'Test email address is required' });
+    }
+
+    if (!templateId) {
+      return res.status(400).json({ error: 'Template ID is required' });
+    }
+
+    const recipientName = testName || 'Test Recipient';
+    const subject = customSubject || 'Real InvestCo - Real Estate Investment Opportunities';
+
+    // Create SMTP transporter using Brevo SMTP
+    const transporter = nodemailer.createTransport({
+      host: 'smtp-relay.brevo.com',
+      port: 587,
+      secure: false,
+      auth: {
+        user: '905d50001@smtp-brevo.com',
+        pass: functions.config().brevo.smtp_password
+      },
+      tls: {
+        rejectUnauthorized: false
+      }
+    });
+
+    // Get the specific template from Firestore
+    let emailTemplate = '';
+    try {
+      const templateDoc = await db.collection('emailTemplates').doc(templateId).get();
+      if (templateDoc.exists && templateDoc.data().content) {
+        emailTemplate = templateDoc.data().content;
+      } else {
+        throw new Error(`Template ${templateId} not found`);
+      }
+    } catch (error) {
+      console.log(`Could not load template ${templateId} from Firestore:`, error.message);
+      return res.status(404).json({ error: `Template ${templateId} not found` });
+    }
+
+    // Replace placeholders in template
+    const personalizedContent = emailTemplate
+      .replace(/{FIRSTNAME}/g, recipientName)
+      .replace(/{NAME}/g, recipientName);
+
+    const mailOptions = {
+      from: '"Real InvestCo" <rich@realinvestco.com>',
+      to: testEmail,
+      subject: subject,
+      html: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Real InvestCo - Investment Opportunities</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f6fb;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px;">
+            <!-- Header with Logo -->
+            <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1A237E;">
+              <h1 style="color: #1A237E; margin: 10px 0 0 0; font-size: 24px;">Real InvestCo</h1>
+              <p style="color: #666; margin: 5px 0 0 0; font-size: 16px;">Your trusted partner in real estate investment</p>
+            </div>
+            
+            <!-- Main Content -->
+            <div style="padding: 30px 20px;">
+              ${personalizedContent.replace(/\n/g, '<br>')}
+            </div>
+            
+            <!-- Footer with Compliance -->
+            <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="color: #666; margin: 0 0 10px 0; font-size: 14px;">
+                <strong>Real InvestCo</strong><br>
+                Your trusted partner in real estate investment
+              </p>
+              <p style="color: #666; margin: 0 0 10px 0; font-size: 12px;">
+                <a href="https://realinvestco-msuk16mlq-rich-gowards-projects.vercel.app" style="color: #1A237E; text-decoration: none;">Visit our website</a>
+              </p>
+              <hr style="border: none; border-top: 1px solid #ddd; margin: 15px 0;">
+              <p style="color: #999; margin: 0 0 10px 0; font-size: 11px;">
+                <strong>CAN-SPAM Compliance:</strong><br>
+                This email was sent as part of our business development efforts.
+              </p>
+              <p style="color: #999; margin: 0 0 10px 0; font-size: 11px;">
+                <strong>Business Address:</strong><br>
+                Real InvestCo<br>
+                123 Main Street, Phoenix, AZ 85001
+              </p>
+              <p style="color: #999; margin: 0; font-size: 11px;">
+                <a href="#" style="color: #999; text-decoration: underline;">Unsubscribe from future emails</a>
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+
+    const result = await transporter.sendMail(mailOptions);
+    
+    // Log the email
+    await db.collection('emailLogs').add({
+      contactEmail: testEmail,
+      contactName: recipientName,
+      templateType: templateId,
+      subject: subject,
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      status: 'sent',
+      messageId: result.messageId || null,
+      isTest: true
+    });
+
+    console.log(`Multi-template email sent successfully to ${testEmail} using template ${templateId}`);
+    res.status(200).json({ 
+      success: true, 
+      sentTo: testEmail,
+      templateId: templateId,
+      subject: subject,
+      messageId: result.messageId,
+      message: 'Multi-template email sent successfully' 
+    });
+
+  } catch (error) {
+    console.error('Error sending multi-template email:', error);
+    
+    // Log the error
+    try {
+      await db.collection('emailLogs').add({
+        contactEmail: req.body.testEmail || null,
+        contactName: req.body.testName || null,
+        templateType: req.body.templateId || 'unknown',
+        subject: 'Multi-template email failed to send',
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'failed',
+        error: error.message,
+        isTest: true
+      });
+    } catch (logError) {
+      console.error('Error logging multi-template email failure:', logError);
+    }
+
+    res.status(500).json({ 
+      error: 'Failed to send multi-template email',
+      details: error.message 
+    });
+  }
+});
