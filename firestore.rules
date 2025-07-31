@@ -1,0 +1,51 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Allow public read access to properties collection
+    match /properties/{document} {
+      allow read: if true;  // Anyone can read properties
+      allow write: if request.auth != null;  // Only authenticated users can write
+    }
+    
+    // Allow access to generalInquiries collection - Updated for delete permissions
+    match /generalInquiries/{document} {
+      allow create: if true;  // Allow anyone to submit contact forms
+      allow read: if request.auth != null;  // Only authenticated users can read submissions
+      allow delete: if request.auth != null;  // Only authenticated users can delete submissions
+    }
+    
+    // Allow access to propertyInquiries collection - Updated for delete permissions
+    match /propertyInquiries/{document} {
+      allow create: if true; // Allow anyone to submit property inquiries
+      allow read: if request.auth != null; // Only authenticated users can read them
+      allow delete: if request.auth != null; // Only authenticated users can delete them
+    }
+    
+    // Allow access to outboundContacts collection
+    match /outboundContacts/{document} {
+      allow create: if request.auth != null; // Only authenticated users can create outbound contacts
+      allow read: if request.auth != null; // Only authenticated users can read outbound contacts
+      allow delete: if request.auth != null; // Only authenticated users can delete outbound contacts
+    }
+    
+    // Allow access to emailLogs collection
+    match /emailLogs/{document} {
+      allow create: if request.auth != null; // Only authenticated users can create email logs
+      allow read: if request.auth != null; // Only authenticated users can read email logs
+      allow delete: if request.auth != null; // Only authenticated users can delete email logs
+    }
+    
+    // Allow access to settings collection
+    match /settings/{document} {
+      allow create: if request.auth != null; // Only authenticated users can create settings
+      allow read: if request.auth != null; // Only authenticated users can read settings
+      allow update: if request.auth != null; // Only authenticated users can update settings
+      allow delete: if request.auth != null; // Only authenticated users can delete settings
+    }
+    
+    // Default rule - deny all other access
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+} 

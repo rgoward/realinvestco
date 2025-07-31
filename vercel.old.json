@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "public/**/*",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/$1"
+    },
+    {
+      "src": "/admin-secret.html",
+      "headers": {
+        "www-authenticate": "Basic realm=\"Secure Area\""
+      },
+      "dest": "/admin-secret.html"
+    }
+  ],
+  "outputDirectory": "public"
+}

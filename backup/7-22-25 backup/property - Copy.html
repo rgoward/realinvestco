@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Property Details - Real InvestCo</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script>
+      // Your web app's Firebase configuration
+      const firebaseConfig = {
+        apiKey: "AIzaSyDXifeppD7kBgpgwu74Aa-5h6t_4ieFwq0",
+        authDomain: "realinvestco-web.firebaseapp.com",
+        projectId: "realinvestco-web",
+        storageBucket: "realinvestco-web.firebasestorage.app",
+        messagingSenderId: "1021426656860",
+        appId: "1:1021426656860:web:1a1f9cb16b3f0a2158a899",
+        measurementId: "G-X30NR9MZGP"
+      };
+      // Initialize Firebase
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+    </script>
+</head>
+<body>
+    <nav class="link-bar">
+        <a href="index.html">Home</a>
+        <a href="properties.html">Properties</a>
+        <a href="properties-table.html">Properties Spreadsheet</a>
+        <a href="contact.html">Contact US</a>
+    </nav>
+    <div class="app">
+        <main>
+            <div id="propertyDetails" class="property-details-page">
+                <!-- Property details will be loaded here -->
+            </div>
+        </main>
+
+        <footer>
+            <p>&copy; 2025 Real InvestCo. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <script>
+      // Fetch and render property details
+      async function fetchPropertyByIdOrNumeric(id) {
+        if (!id) return null;
+        // Try to fetch by document ID first
+        let doc = await db.collection('properties').doc(id).get();
+        if (doc.exists) {
+          return { ...doc.data(), id: doc.id };
+        }
+        // If not found, try to fetch by numeric id
+        const snapshot = await db.collection('properties').where('id', '==', isNaN(Number(id)) ? id : Number(id)).get();
+        if (!snapshot.empty) {
+          const doc2 = snapshot.docs[0];
+          return { ...doc2.data(), id: doc2.id };
+        }
+        return null;
+      }
+      async function loadPropertyDetails() {
+        const urlParams = new URLSearchParams(window.location.search);
+        const propertyId = urlParams.get('id');
+        const property = await fetchPropertyByIdOrNumeric(propertyId);
+        const detailsContainer = document.getElementById('propertyDetails');
+        if (!property) {
+          detailsContainer.innerHTML = '<p>Property not found</p>';
+          return;
+        }
+        document.title = `${property.title} - Real InvestCo`;
+        // Support both string and object formats for images
+        const images = Array.isArray(property.images)
+          ? property.images.map(img => typeof img === 'string' ? img : (img && img.url ? img.url : '')).filter(url => url && url.trim() !== '')
+          : [];
+        let mainImageIndex = 0;
+        function renderPropertyCard() {
+          detailsContainer.innerHTML = `
+            <div class="property-detail-flex">
+              <div class="property-info-column">
+                <div class="property-card">
+                  <div class="property-header-stack">
+                    <a id="contact-property-btn" href="contact.html?propertyId=${property.id}" class="submit-button" style="margin: -18px auto 0 auto; display: block; width: fit-content;">Contact Us About This Property</a>
+                    <div class="property-title-centered property-card-title">${property.title || ''}</div>
+                  </div>
+                  <div class="main-image-wrapper" style="margin-top:25px; position:relative; width:500px; margin-left:auto; margin-right:auto;">
+                    <button class="image-nav prev-image" aria-label="Previous image" style="position:absolute; left:0; top:50%; transform:translateY(-50%); z-index:2;">&#8592;</button>
+                    ${images.length > 0 && images[mainImageIndex]
+                      ? `<img src="${images[mainImageIndex]}" alt="${property.title}" class="property-main-image clickable-image" id="mainImage">`
+                      : `<div class="property-main-image placeholder"></div>`}
+                    <button class="image-nav next-image" aria-label="Next image" style="position:absolute; right:0; top:50%; transform:translateY(-50%); z-index:2;">&#8594;</button>
+                  </div>
+                  ${images.length > 1 ? `
+                    <div class="thumbnail-container scrollable-thumbnails">
+                      ${images.map((image, index) => `
+                        <img 
+                          src="${image}"
+                          alt="${property.title} - Image ${index + 1}"
+                          class="thumbnail${index === mainImageIndex ? ' selected' : ''}"
+                          style="width: 60px; height: 60px; object-fit: cover; border-radius: 4px; margin: 4px; border: 2px solid ${index === mainImageIndex ? '#1A237E' : '#eee'}; cursor: pointer;"
+                          data-index="${index}"
+                        >
+                      `).join('')}
+                    </div>
+                  ` : ''}
+                  <div class="property-info" style="margin-top:32px;">
+                    <div class="price-arv-columns" style="justify-content: space-between;">
+                      <div class="price-arv-col">
+                        <div class="wholesale-cost-label">Wholesale Cost</div>
+                        <div class="wholesale-cost-value">${property.price || ''}</div>
+                      </div>
+                      ${property.arv ? `
+                      <div class="price-arv-col" style="text-align: right;">
+                        <div class="arv-label">Estimated ARV</div>
+                        <div class="arv-value">${property.arv}</div>
+                      </div>` : ''}
+                    </div>
+                    <div class="location-zip-row">
+                      <div style="display: flex; flex-direction: row; align-items: center; gap: 8px;">
+                        <span>${property.city ? property.city : ''}${property.state ? `, ${property.state}` : ''}</span>
+                        ${property.zipCode ? `<span>${property.zipCode}</span>` : ''}
+                        ${property.county ? `<span>${property.county.replace(/\s*County\s*County$/i, ' County')}</span>` : ''}
+                      </div>
+                    </div>
+                    <div class="property-details" style="margin-top:20px !important;">
+                      <span>${property.bedrooms} beds</span>
+                      <span>${property.bathrooms} baths</span>
+                      <span>${property.area} sq ft</span>
+                      <span>${property.lotsize || ''} lot</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <div class="property-image-card">
+                ${images.length > 0 && images[mainImageIndex]
+                  ? `<img src="${images[mainImageIndex]}" alt="${property.title}" class="property-large-image clickable-image" id="largePropertyImage" style="cursor:pointer;">`
+                  : `<div class="property-large-image placeholder"></div>`}
+              </div>
+            </div>
+          `;
+          // Add click event listeners to thumbnails
+          const thumbnails = detailsContainer.querySelectorAll('.thumbnail');
+          const thumbnailContainer = detailsContainer.querySelector('.scrollable-thumbnails');
+          function scrollThumbnailIntoView(idx) {
+            const thumb = thumbnails[idx];
+            if (thumb && thumbnailContainer) {
+              thumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+            }
+          }
+          setTimeout(() => scrollThumbnailIntoView(mainImageIndex), 0);
+          thumbnails.forEach(thumb => {
+            thumb.addEventListener('click', function() {
+              const idx = Number(this.getAttribute('data-index'));
+              if (!isNaN(idx) && idx !== mainImageIndex) {
+                mainImageIndex = idx;
+                renderPropertyCard();
+                setTimeout(() => scrollThumbnailIntoView(mainImageIndex), 0);
+              }
+            });
+          });
+          // Add next/prev image navigation
+          const prevBtn = detailsContainer.querySelector('.prev-image');
+          const nextBtn = detailsContainer.querySelector('.next-image');
+          if (prevBtn) {
+            prevBtn.onclick = function() {
+              mainImageIndex = (mainImageIndex - 1 + images.length) % images.length;
+              renderPropertyCard();
+              setTimeout(() => scrollThumbnailIntoView(mainImageIndex), 0);
+            };
+          }
+          if (nextBtn) {
+            nextBtn.onclick = function() {
+              mainImageIndex = (mainImageIndex + 1) % images.length;
+              renderPropertyCard();
+              setTimeout(() => scrollThumbnailIntoView(mainImageIndex), 0);
+            };
+          }
+          // Restore click-to-advance on large image
+          const largeImg = detailsContainer.querySelector('#largePropertyImage');
+          if (largeImg) {
+            largeImg.onclick = function() {
+              mainImageIndex = (mainImageIndex + 1) % images.length;
+              renderPropertyCard();
+              setTimeout(() => scrollThumbnailIntoView(mainImageIndex), 0);
+            };
+          }
+        }
+        renderPropertyCard();
+      }
+      loadPropertyDetails();
+    </script>
+
+    <style>
+        body, html {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f4f6fb;
+        }
+        .link-bar {
+            position: absolute;
+            top: 30px;
+            left: 900px;
+            background: #1A237E;
+            border-radius: 6px;
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+            padding: 10px 24px 8px 24px;
+            display: flex;
+            gap: 28px;
+            z-index: 10;
+        }
+        .link-bar a {
+            color: #fff;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 1.15em;
+            transition: color 0.2s;
+        }
+        .link-bar a:hover {
+            color: #FFD700;
+            text-shadow: 0 2px 8px rgba(26,144,255,0.15);
+        }
+        @media (max-width: 600px) {
+            .link-bar {
+                position: static;
+                margin: 0 auto 16px auto;
+                padding: 10px 5vw 5px 5vw;
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 12px;
+            }
+        }
+        .property-details-page {
+            max-width: 1800px;
+            margin: 0 auto;
+            padding: 20px 0;
+            margin-left: -104px; /* Move all components 6.5 inches to the left */
+        }
+
+        .property-gallery {
+            margin-bottom: 30px;
+        }
+
+        .main-image {
+            width: 100%;
+            margin-bottom: 20px;
+            max-height: 600px;
+            overflow: hidden;
+        }
+
+        .main-image img {
+            width: 100%;
+            height: 600px;
+            object-fit: cover;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .thumbnail-container {
+            display: flex;
+            gap: 8px;
+            margin: 12px 0;
+        }
+
+        .thumbnail {
+            width: 60px;
+            height: 60px;
+            object-fit: cover;
+            border-radius: 4px;
+            cursor: pointer;
+            border: 1px solid #eee;
+            transition: box-shadow 0.2s;
+        }
+
+        .thumbnail.selected {
+            border: 2px solid #1A237E;
+        }
+
+        .thumbnail:hover {
+            box-shadow: 0 2px 8px rgba(0,0,0,0.12);
+        }
+
+        .property-detail-flex {
+            display: flex;
+            flex-direction: row;
+            gap: 48px;
+            align-items: flex-start;
+            justify-content: flex-start;
+            margin-bottom: 32px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .property-info-column {
+            display: flex;
+            flex-direction: column;
+            gap: 24px;
+            flex: 0 0 500px;
+        }
+
+        .property-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 0 0 24px 0;
+            margin: 0;
+            max-width: 500px;
+            border: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .property-main-image {
+            width: 100%;
+            height: 400px;
+            object-fit: cover;
+            border-radius: 12px;
+            display: block;
+            background: #f0f0f0;
+            margin-bottom: 16px;
+        }
+        .property-main-image.placeholder {
+            background: #f0f0f0 url('https://via.placeholder.com/500x400?text=No+Image') center center no-repeat;
+            background-size: cover;
+        }
+        .property-info {
+            padding: 24px 24px 0 24px;
+            background: none;
+            border-radius: 0;
+            box-shadow: none;
+            width: 100%;
+        }
+        .price-arv-columns {
+            display: flex;
+            gap: 40px;
+            margin-bottom: 8px;
+        }
+        .price-arv-col {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .wholesale-cost-label, .arv-label {
+            font-size: 1em;
+            color: #333;
+            font-weight: 500;
+            margin-bottom: 2px;
+        }
+        .wholesale-cost-value {
+            font-size: 1.2em;
+            color: #d32f2f;
+            font-weight: 700;
+        }
+        .arv-value {
+            font-size: 1.2em;
+            color: #388e3c;
+            font-weight: 700;
+        }
+        .location-zip-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0;
+        }
+        .location {
+            font-size: 1em;
+            color: #444;
+            margin: 0;
+        }
+        .zip-code {
+            font-size: 1em;
+            color: #444;
+            margin: 0 0 0 16px;
+            text-align: right;
+            min-width: 70px;
+        }
+        .county {
+            font-size: 1em;
+            color: #444;
+            margin: 4px 0 8px 0;
+        }
+        .property-details {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 0;
+        }
+        .property-details span {
+            background: #f5f5f5;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: 500;
+        }
+        .property-image-card {
+            background: #f4f6fb;
+            border-radius: 12px;
+            box-shadow: none;
+            padding: 0;
+            width: 100%;
+            max-width: 1140px;
+            height: auto;
+            min-height: 672px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            flex: 1 1 0%;
+            margin-top: 56px;
+        }
+        .property-large-image {
+            width: 100%;
+            max-width: 1080px;
+            height: auto;
+            max-height: 864px;
+            object-fit: cover;
+            border-radius: 12px;
+            display: block;
+            background: #f0f0f0;
+        }
+        .property-large-image.placeholder {
+            background: #f0f0f0 url('https://via.placeholder.com/700x560?text=No+Image') center center no-repeat;
+            background-size: cover;
+        }
+        .property-contact-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 24px;
+            max-width: 400px;
+            min-width: 400px;
+            border: 1px solid #eee;
+            flex: 0 0 400px;
+        }
+        .property-contact-card h4 {
+            margin: 0 0 24px 0;
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #1A237E;
+        }
+        .contact-form {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+        .form-group label {
+            font-weight: 500;
+            color: #333;
+            font-size: 0.95em;
+        }
+        .form-group input,
+        .form-group textarea {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 0.95em;
+            transition: border-color 0.2s;
+        }
+        .form-group input:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1A237E;
+        }
+        .checkbox-label {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            font-size: 0.95em;
+        }
+        .checkbox-label input[type="checkbox"] {
+            width: 16px;
+            height: 16px;
+        }
+        .submit-button {
+            background: #1A237E;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 1em;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+            margin-top: 8px;
+        }
+        .submit-button:hover {
+            background: #283593;
+        }
+        @media (max-width: 1800px) {
+            .property-detail-flex {
+                flex-wrap: wrap;
+                justify-content: center;
+                padding-left: 8px;
+                padding-right: 8px;
+            }
+            .property-card, .property-image-card, .property-contact-card {
+                margin-bottom: 24px;
+            }
+        }
+        .state {
+            font-size: 1em;
+            color: #444;
+            margin: 0;
+            font-weight: 500;
+        }
+        .property-header {
+            margin-top: 7px;
+            width: 500px;
+            margin-left: 0;
+        }
+        .property-main-image, .property-large-image {
+            cursor: pointer;
+        }
+    </style>
+    <style>
+      .main-image-wrapper {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        margin-bottom: 12px;
+        padding-top: 0;
+        width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: -45px;
+      }
+      .image-nav {
+        background: #1A237E;
+        color: #fff;
+        border: none;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        font-size: 1.5em;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.2s;
+      }
+      .image-nav:hover {
+        background: #FFD700;
+        color: #1A237E;
+      }
+      .property-main-image {
+        width: 500px;
+        height: 400px;
+        object-fit: contain;
+        border-radius: 12px;
+        display: block;
+        background: #f0f0f0;
+        margin-bottom: 0;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .scrollable-thumbnails {
+        display: flex;
+        overflow-x: auto;
+        gap: 4px;
+        padding-bottom: 8px;
+        scrollbar-width: thin;
+        scrollbar-color: #1A237E #eee;
+        width: 500px;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .scrollable-thumbnails::-webkit-scrollbar {
+        height: 8px;
+      }
+      .scrollable-thumbnails::-webkit-scrollbar-thumb {
+        background: #1A237E;
+        border-radius: 4px;
+      }
+      .scrollable-thumbnails::-webkit-scrollbar-track {
+        background: #eee;
+        border-radius: 4px;
+      }
+    </style>
+    <style>
+      .contact-property-link {
+        display: inline-block;
+        padding: 10px 24px;
+        background: #1A237E;
+        color: #fff;
+        border-radius: 8px;
+        font-weight: 600;
+        font-size: 1em;
+        text-decoration: none;
+        transition: background 0.2s, color 0.2s;
+        margin: 24px 0 0 0;
+        box-shadow: 0 2px 8px rgba(26,144,255,0.10);
+      }
+      .contact-property-link:hover {
+        background: #FFD700;
+        color: #1A237E;
+      }
+    </style>
+    <style>
+      .property-card-title {
+        font-size: 1.25em;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 20px;
+        margin-top: 0;
+        text-align: left;
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+    </style>
+    <style>
+      /* Contact Form Styles */
+      .contact-section {
+        padding: 80px 20px;
+        background: #fff;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .contact-container {
+        max-width: 1200px;
+        width: 100%;
+        display: flex;
+        gap: 48px;
+        align-items: flex-start;
+        justify-content: center;
+        margin-left: auto;
+        margin-right: auto;
+      }
+      .contact-info {
+        flex: 0 0 400px;
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        padding: 40px;
+        border: 1px solid #eee;
+      }
+      .contact-info h2 {
+        margin: 0 0 24px 0;
+        font-size: 2em;
+        font-weight: 700;
+        color: #1A237E;
+      }
+      .contact-info p {
+        font-size: 1.1em;
+        color: #333;
+        line-height: 1.6;
+        margin-bottom: 20px;
+      }
+      .contact-card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        padding: 40px;
+        max-width: 500px;
+        min-width: 500px;
+        border: 1px solid #eee;
+        flex: 0 0 500px;
+      }
+      .contact-card h3 {
+        margin: 0 0 24px 0;
+        font-size: 1.5em;
+        font-weight: 600;
+        color: #1A237E;
+      }
+      .contact-form {
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .form-group label {
+        font-weight: 500;
+        color: #333;
+        font-size: 0.95em;
+      }
+      .form-group input,
+      .form-group textarea {
+        padding: 10px;
+        border: 1px solid #ddd;
+        border-radius: 6px;
+        font-size: 0.95em;
+        transition: border-color 0.2s;
+      }
+      .form-group input:focus,
+      .form-group textarea:focus {
+        outline: none;
+        border-color: #1A237E;
+      }
+      .checkbox-label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        cursor: pointer;
+        font-size: 0.95em;
+      }
+      .checkbox-label input[type="checkbox"] {
+        width: 16px;
+        height: 16px;
+      }
+      .submit-button {
+        background: #1A237E;
+        color: white;
+        border: none;
+        padding: 12px 24px;
+        border-radius: 6px;
+        font-size: 1em;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin-top: 8px;
+      }
+      .submit-button:hover {
+        background: #283593;
+      }
+      @media (max-width: 1200px) {
+        .contact-container {
+          flex-direction: column;
+          align-items: center;
+        }
+        .contact-info, .contact-card {
+          max-width: 100%;
+          min-width: unset;
+        }
+      }
+    </style>
+</body>
+</html> 

@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Us About This Property - Real InvestCo</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap">
+    <link rel="stylesheet" href="styles.css">
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <script>
+      const firebaseConfig = {
+        apiKey: "AIzaSyDXifeppD7kBgpgwu74Aa-5h6t_4ieFwq0",
+        authDomain: "realinvestco-web.firebaseapp.com",
+        projectId: "realinvestco-web",
+        storageBucket: "realinvestco-web.appspot.com",
+        messagingSenderId: "1021426656860",
+        appId: "1:1021426656860:web:1a1f9cb16b3f0a2158a899",
+        measurementId: "G-X30NR9MZGP"
+      };
+      firebase.initializeApp(firebaseConfig);
+      const db = firebase.firestore();
+    </script>
+    <style>
+      body, html { background: #f4f6fb; font-family: 'Segoe UI', Arial, sans-serif; }
+      .property-detail-flex {
+          display: flex;
+          flex-direction: row;
+          gap: 24px;
+          align-items: flex-start;
+          justify-content: flex-start;
+          margin-bottom: 32px;
+          width: 100%;
+      }
+      .property-info-column {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 500px;
+      }
+      .property-card {
+          background: #fff;
+          border-radius: 12px;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+          padding: 0 0 24px 0;
+          margin: 0 auto;
+          max-width: 500px;
+          border: 1px solid #eee;
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 500px;
+      }
+      .property-main-image { width: 500px; height: 400px; object-fit: contain; border-radius: 12px; display: block; background: #f0f0f0; margin-bottom: 0; }
+      .property-info { padding: 24px 24px 0 24px; background: none; border-radius: 0; box-shadow: none; width: 100%; }
+      .price-arv-columns { display: flex; gap: 40px; margin-bottom: 8px; }
+      .price-arv-col { display: flex; flex-direction: column; align-items: flex-start; }
+      .wholesale-cost-label, .arv-label { font-size: 1em; color: #333; font-weight: 500; margin-bottom: 2px; }
+      .wholesale-cost-value { font-size: 1.2em; color: #d32f2f; font-weight: 700; }
+      .arv-value { font-size: 1.2em; color: #388e3c; font-weight: 700; }
+      .location-zip-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0; }
+      .location { font-size: 1em; color: #444; margin: 0; }
+      .zip-code { font-size: 1em; color: #444; margin: 0 0 0 16px; text-align: right; min-width: 70px; }
+      .county { font-size: 1em; color: #444; margin: 4px 0 8px 0; }
+      .property-details { display: flex; gap: 8px; margin-bottom: 0; }
+      .property-details span { background: #f5f5f5; padding: 8px 16px; border-radius: 20px; font-weight: 500; }
+      .property-contact-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 24px; max-width: 400px; min-width: 400px; border: 1px solid #eee; flex: 0 0 400px; }
+      .property-contact-card h4 { margin: 0 0 24px 0; font-size: 1.2em; font-weight: 600; color: #1A237E; }
+      .contact-form { display: flex; flex-direction: column; gap: 16px; }
+      .form-group { display: flex; flex-direction: column; gap: 6px; }
+      .form-group label { font-weight: 500; color: #333; font-size: 0.95em; }
+      .form-group input, .form-group textarea { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95em; transition: border-color 0.2s; }
+      .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #1A237E; }
+      .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.95em; }
+      .checkbox-label input[type="checkbox"] { width: 16px; height: 16px; }
+      .submit-button { background: #1A237E; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 1em; font-weight: 500; cursor: pointer; transition: background-color 0.2s; margin-top: 8px; }
+      .submit-button:hover { background: #283593; }
+      @media (max-width: 1800px) { .property-detail-flex { flex-wrap: wrap; justify-content: center; padding-left: 8px; padding-right: 8px; } .property-card, .property-contact-card { margin-bottom: 24px; } }
+      .state { font-size: 1em; color: #444; margin: 0; font-weight: 500; }
+      .property-header { margin-top: 7px; }
+      .property-header-flex {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-top: 24px;
+          margin-bottom: 24px;
+      }
+      .property-header-title {
+          margin: 0 0 0 100px;
+          font-size: 2em;
+          font-weight: 700;
+          color: #1A237E;
+          text-align: center;
+      }
+      .centered-back-link {
+          display: flex;
+          justify-content: center;
+          margin-top: 32px;
+      }
+      .back-to-property-link {
+          display: inline-block;
+          margin-bottom: 12px;
+          padding: 10px 24px;
+          background: #1A237E;
+          color: #fff;
+          border-radius: 8px;
+          font-weight: 600;
+          font-size: 1em;
+          text-decoration: none;
+          transition: background 0.2s, color 0.2s;
+          box-shadow: 0 2px 8px rgba(26,144,255,0.10);
+      }
+      .back-to-property-link:hover {
+          background: #FFD700;
+          color: #1A237E;
+      }
+      .property-header-flex-left {
+          display: flex;
+          align-items: center;
+          justify-content: flex-start;
+          gap: 24px;
+          margin-top: 24px;
+          margin-bottom: 24px;
+      }
+      .property-header-title-left {
+          margin: 0;
+          font-size: 2em;
+          font-weight: 700;
+          color: #1A237E;
+          text-align: left;
+      }
+      .property-title-centered {
+          text-align: center;
+          font-size: 1.5em;
+          font-weight: 600;
+          color: #1A237E;
+          margin-bottom: 16px;
+      }
+      .property-header-stack {
+          display: flex;
+          flex-direction: column;
+          align-items: center;
+          width: 500px;
+          margin: 0 auto 12px auto;
+          padding-top: 32px;
+      }
+    </style>
+</head>
+<body>
+    <div class="app">
+        <main>
+            <div id="propertyDetails" class="property-details-page">
+                <!-- Property details and contact form will be loaded here -->
+            </div>
+        </main>
+        <footer>
+            <p>&copy; 2025 Real InvestCo. All rights reserved.</p>
+        </footer>
+    </div>
+    <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const propertyId = urlParams.get('id');
+    async function fetchPropertyByIdOrNumeric(id) {
+        if (!id) return null;
+        let doc = await db.collection('properties').doc(id).get();
+        if (doc.exists) {
+            return { ...doc.data(), propertyDocId: doc.id };
+        }
+        const snapshot = await db.collection('properties').where('id', '==', isNaN(Number(id)) ? id : Number(id)).get();
+        if (!snapshot.empty) {
+            const doc2 = snapshot.docs[0];
+            return { ...doc2.data(), propertyDocId: doc2.id };
+        }
+        return null;
+    }
+    async function loadPropertyDetails() {
+        const property = await fetchPropertyByIdOrNumeric(propertyId);
+        const detailsContainer = document.getElementById('propertyDetails');
+        if (!property) {
+            detailsContainer.innerHTML = '<p>Property not found</p>';
+            return;
+        }
+        document.title = `Contact Us About ${property.title} - Real InvestCo`;
+        detailsContainer.innerHTML = `
+            <div class="property-detail-flex">
+                <div class="property-info-column">
+                    <div class="property-card">
+                        <div class="property-header-stack">
+                            <a href="property.html?id=${property.id}" class="back-to-property-link">&larr; Back to Property</a>
+                            <div class="property-title-centered">Contact Us About This Property</div>
+                        </div>
+                        ${(() => {
+                            // Support both string and object formats for images
+                            const images = Array.isArray(property.images)
+                                ? property.images
+                                    .map(img => typeof img === 'string' ? img : (img && img.url ? img.url : ''))
+                                    .filter(url => url && url.trim() !== '')
+                                : [];
+                            return images.length > 0
+                                ? `<img src="${images[0]}" alt="${property.title}" class="property-main-image">`
+                                : `<div class="property-main-image placeholder"></div>`;
+                        })()}
+                        <div class="property-info">
+                            <h3>${property.title}</h3>
+                            <div class="price-arv-columns">
+                                <div class="price-arv-col">
+                                    <div class="wholesale-cost-label">Wholesale Cost</div>
+                                    <div class="wholesale-cost-value">${property.price}</div>
+                                </div>
+                                ${property.ARV ? `
+                                <div class="price-arv-col">
+                                    <div class="arv-label">Estimated ARV</div>
+                                    <div class="arv-value">${property.ARV}</div>
+                                </div>` : ''}
+                            </div>
+                            <div class="location-zip-row">
+                                <div style="display: flex; flex-direction: row; align-items: center; gap: 8px;">
+                                    <p class="location" style="margin-bottom: 0;">${property.location || ''}</p>
+                                    ${property.state ? `<p class="state" style="margin-bottom: 0;">${property.state}</p>` : ''}
+                                    ${property.zipCode ? `<p class="zip-code" style="margin-bottom: 0;">${property.zipCode}</p>` : ''}
+                                </div>
+                                ${property.county ? `<p class="county">${property.county.replace(/\s*County\s*County$/i, ' County')}</p>` : ''}
+                            </div>
+                            <div class="property-details">
+                                <span>${property.bedrooms} beds</span>
+                                <span>${property.bathrooms} baths</span>
+                                <span>${property.area} sq ft</span>
+                                ${property.lotSize ? `<span>${property.lotSize} lot size</span>` : ''}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="property-contact-card">
+                    <h4>Property Information Request Form</h4>
+                    <form id="propertyContactForm" class="contact-form">
+                        <input type="hidden" id="propertyDocId" value="${property.propertyDocId}">
+                        <input type="hidden" id="propertyNumericId" value="${property.id}">
+                        <input type="hidden" id="propertyTitle" value="${property.title}">
+                        <div class="form-group">
+                            <label for="name">Full Name *</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email Address *</label>
+                            <input type="email" id="email" name="email" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="cellPhone">Cell Phone *</label>
+                            <input type="tel" id="cellPhone" name="cellPhone" required>
+                        </div>
+                        <div class="form-group">
+                            <label for="landline">Landline Phone</label>
+                            <input type="tel" id="landline" name="landline">
+                        </div>
+                        <div class="form-group">
+                            <label for="message">Message *</label>
+                            <textarea id="message" name="message" rows="4" required></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" name="newsletter" id="newsletter">
+                                Click to subscribe for new properties and property updates
+                            </label>
+                        </div>
+                        <button type="submit" class="submit-button">Send Request</button>
+                    </form>
+                </div>
+            </div>
+        `;
+        // Add form submission handler
+        const form = detailsContainer.querySelector('#propertyContactForm');
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = {
+                propertyDocId: property.propertyDocId,
+                propertyNumericId: property.id,
+                propertyTitle: property.title,
+                name: form.name.value,
+                email: form.email.value,
+                cellPhone: form.cellPhone.value,
+                landline: form.landline.value,
+                message: form.message.value,
+                newsletter: form.newsletter.checked,
+                timestamp: new Date().toISOString()
+            };
+            try {
+                await db.collection('propertyInquiries').add(formData);
+                alert('Thank you for your interest! We will contact you shortly.');
+                window.location.href = `property.html?id=${property.id}`;
+            } catch (error) {
+                console.error('Error submitting form:', error);
+                alert('There was an error submitting your request. Please try again.');
+            }
+        });
+    }
+    loadPropertyDetails();
+    </script>
+</body>
+</html> 

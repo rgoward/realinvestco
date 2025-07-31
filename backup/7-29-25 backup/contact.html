@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Contact Real InvestCo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    body, html { margin: 0; padding: 0; font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6fb; }
+    .contact-section { padding: 80px 20px; background: #fff; min-height: 100vh; display: flex; align-items: center; justify-content: center; }
+    .contact-container { max-width: 1200px; width: 100%; display: flex; gap: 48px; align-items: flex-start; justify-content: center; }
+    .contact-info { flex: 0 0 400px; background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 40px; border: 1px solid #eee; }
+    .contact-info h2 { margin: 0 0 24px 0; font-size: 2em; font-weight: 700; color: #1A237E; }
+    .contact-info p { font-size: 1.1em; color: #333; line-height: 1.6; margin-bottom: 20px; }
+    .contact-card { background: #fff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08); padding: 40px; max-width: 500px; min-width: 500px; border: 1px solid #eee; flex: 0 0 500px; }
+    .contact-card h3 { margin: 0 0 24px 0; font-size: 1.5em; font-weight: 600; color: #1A237E; }
+    .contact-form { display: flex; flex-direction: column; gap: 16px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-weight: 500; color: #333; font-size: 0.95em; }
+    .form-group input, .form-group textarea { padding: 10px; border: 1px solid #ddd; border-radius: 6px; font-size: 0.95em; transition: border-color 0.2s; }
+    .form-group input:focus, .form-group textarea:focus { outline: none; border-color: #1A237E; }
+    .checkbox-label { display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 0.95em; }
+    .checkbox-label input[type="checkbox"] { width: 16px; height: 16px; }
+    .submit-button { background: #1A237E; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 1em; font-weight: 500; cursor: pointer; transition: background-color 0.2s; margin-top: 8px; }
+    .submit-button:hover { background: #283593; }
+    @media (max-width: 1200px) { .contact-container { flex-direction: column; align-items: center; } .contact-info, .contact-card { max-width: 100%; min-width: unset; } }
+    .link-bar {
+        position: absolute;
+        top: 30px;
+        left: 900px;
+        background: #1A237E;
+        border-radius: 6px;
+        box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+        padding: 10px 24px 8px 24px;
+        display: flex;
+        gap: 28px;
+        z-index: 10;
+    }
+    .link-bar a {
+        color: #fff;
+        text-decoration: none;
+        font-weight: 700;
+        font-size: 1.15em;
+        transition: color 0.2s;
+    }
+    .link-bar a:hover {
+        color: #FFD700;
+        text-shadow: 0 2px 8px rgba(26,144,255,0.15);
+    }
+    @media (max-width: 600px) {
+        .link-bar {
+            position: static;
+            margin: 0 auto 16px auto;
+            padding: 10px 5vw 5px 5vw;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 12px;
+        }
+    }
+  </style>
+</head>
+<body>
+  <nav class="link-bar">
+    <a href="index.html">Home</a>
+    <a href="properties.html">Properties</a>
+    <a href="properties-table.html">Properties Spreadsheet</a>
+    <a href="contact.html">Contact US</a>
+  </nav>
+  <section class="contact-section">
+    <div class="contact-container">
+      <div class="contact-info">
+        <h2>Contact Real InvestCo</h2>
+        <p>Our mission is to help you find the property investment opportunities you are looking for.</p>
+        <p>Whether you're looking for wholesale properties, fix-and-flip opportunities, or long-term investments, our team is ready to assist you.</p>
+        <p>Fill out the form on the right and we'll get back to you within 24 hours.</p>
+      </div>
+      <div class="contact-card">
+        <h3>Inquiry Form</h3>
+        <div id="propertyTitleDisplay" style="display:none; font-weight:600; color:#1A237E; margin-bottom:12px;"></div>
+        <div id="form-container">
+          <form id="contactForm" class="contact-form">
+            <input type="hidden" id="propertyId" name="propertyId" value="">
+            <div class="form-group">
+              <label for="name">Full Name *</label>
+              <input type="text" id="name" name="name" required>
+            </div>
+            <div class="form-group">
+              <label for="email">Email Address *</label>
+              <input type="email" id="email" name="email" required>
+            </div>
+            <div class="form-group">
+              <label for="cellPhone">Cell Phone *</label>
+              <input type="tel" id="cellPhone" name="cellPhone" required>
+            </div>
+            <div class="form-group">
+              <label for="landline">Landline Phone</label>
+              <input type="tel" id="landline" name="landline">
+            </div>
+            <div class="form-group">
+              <label for="message">Message *</label>
+              <textarea id="message" name="message" rows="4" required placeholder="Tell us about your investment goals, preferred property types, or any questions you have..."></textarea>
+            </div>
+            <div class="form-group">
+              <label class="checkbox-label">
+                <input type="checkbox" name="newsletter" id="newsletter">
+                Click to subscribe for new properties and property updates
+              </label>
+            </div>
+            <button type="submit" class="submit-button">Send Message</button>
+          </form>
+        </div>
+        <div id="form-success-message" style="display: none; text-align: center; padding: 40px; border: 1px solid #c8e6c9; background-color: #f1f8e9; border-radius: 8px;">
+          <h4 style="color: #388e3c; font-size: 1.5em; margin-top: 0;">Thank you!</h4>
+          <p id="success-property-title" style="font-weight:600; color:#1A237E; display:none;"></p>
+          <p>Your message has been sent successfully. We will get back to you within 24 hours.</p>
+          <button id="continue-button" class="submit-button">Continue</button>
+        </div>
+      </div>
+    </div>
+  </section>
+  <script>
+    // Firebase config and initialization
+    const firebaseConfig = {
+      apiKey: "AIzaSyDXifeppD7kBgpgwu74Aa-5h6t_4ieFwq0",
+      authDomain: "realinvestco-web.firebaseapp.com",
+      projectId: "realinvestco-web",
+      storageBucket: "realinvestco-web.firebasestorage.app",
+      messagingSenderId: "1021426656860",
+      appId: "1:1021426656860:web:1a1f9cb16b3f0a2158a899",
+      measurementId: "G-X30NR9MZGP"
+    };
+    if (!firebase.apps.length) {
+      firebase.initializeApp(firebaseConfig);
+    }
+    const db = firebase.firestore();
+
+    // Auto-fill propertyId if present in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    let propId = urlParams.get('propertyId');
+    if (propId) {
+      // If propId is not a number, treat as docId and look up the property
+      if (isNaN(Number(propId))) {
+        db.collection('properties').doc(propId).get().then(doc => {
+          if (doc.exists) {
+            const data = doc.data();
+            if (data.id) {
+              document.getElementById('propertyId').value = data.id;
+              window._propertyTitle = data.title || '';
+              // Show property title
+              const titleDiv = document.getElementById('propertyTitleDisplay');
+              if (window._propertyTitle) {
+                titleDiv.textContent = `Inquiry about: ${window._propertyTitle}`;
+                titleDiv.style.display = 'block';
+              }
+            }
+          }
+        });
+      } else {
+        document.getElementById('propertyId').value = propId;
+        // Fetch property title from Firestore
+        db.collection('properties').where('id', '==', Number(propId)).get().then(snapshot => {
+          if (!snapshot.empty) {
+            const data = snapshot.docs[0].data();
+            const title = data.title || '';
+            if (title) {
+              const titleDiv = document.getElementById('propertyTitleDisplay');
+              titleDiv.textContent = `Inquiry about: ${title}`;
+              titleDiv.style.display = 'block';
+              window._propertyTitle = title;
+            }
+          }
+        });
+      }
+    }
+
+    const contactForm = document.getElementById('contactForm');
+    const formContainer = document.getElementById('form-container');
+    const formSuccess = document.getElementById('form-success-message');
+    const continueBtn = document.getElementById('continue-button');
+
+    contactForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const form = e.target;
+      const submitButton = form.querySelector('.submit-button');
+      submitButton.disabled = true;
+      submitButton.textContent = 'Sending...';
+
+      const formData = {
+        propertyId: form.propertyId.value.trim(),
+        propertyTitle: window._propertyTitle || '',
+        name: form.name.value.trim(),
+        email: form.email.value.trim(),
+        cellPhone: form.cellPhone.value.trim(),
+        landline: form.landline.value.trim(),
+        message: form.message.value.trim(),
+        newsletter: form.newsletter.checked,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+      };
+
+      try {
+        // Validate required fields
+        if (!formData.name || !formData.email || !formData.cellPhone || !formData.message) {
+          throw new Error('Please fill in all required fields.');
+        }
+        // Save to Firestore (generalInquiries or propertyInquiries based on propertyId)
+        const collection = formData.propertyId ? 'propertyInquiries' : 'generalInquiries';
+        const docRef = await db.collection(collection).add(formData);
+
+        // If newsletter is checked, send to Brevo
+        if (formData.newsletter) {
+          await fetch('https://api.brevo.com/v3/contacts', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'api-key': 'YOUR_BREVO_API_KEY_HERE',
+            },
+            body: JSON.stringify({
+              email: formData.email,
+              attributes: {
+                FIRSTNAME: formData.name,
+                PROPERTYID: formData.propertyId || '',
+                CELLPHONE: formData.cellPhone,
+                LANDLINE: formData.landline,
+                MESSAGE: formData.message
+              },
+              listIds: [], // Optionally add to specific list(s) by ID
+              updateEnabled: true
+            })
+          });
+        }
+
+        // Automatically send confirmation email to inbound contacts via webhook
+        try {
+          const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/sendEmailWebhook', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              emailType: 'inbound_confirmation',
+              contactData: {
+                contactId: docRef.id,
+                email: formData.email,
+                name: formData.name,
+                cellPhone: formData.cellPhone,
+                landline: formData.landline,
+                message: formData.message
+              }
+            })
+          });
+
+          if (!response.ok) {
+            console.error('Failed to send confirmation email via webhook');
+          }
+        } catch (emailError) {
+          console.error('Error sending confirmation email:', emailError);
+          // Don't fail the form submission if email fails
+        }
+        // Show success message
+        formContainer.style.display = 'none';
+        formSuccess.style.display = 'block';
+        if (window._propertyTitle) {
+          const successTitle = document.getElementById('success-property-title');
+          successTitle.textContent = `You inquired about: ${window._propertyTitle}`;
+          successTitle.style.display = 'block';
+        } else {
+          const successTitle = document.getElementById('success-property-title');
+          successTitle.style.display = 'none';
+        }
+      } catch (error) {
+        alert(error.message || 'There was an error submitting your message. Please try again.');
+      } finally {
+        submitButton.disabled = false;
+        submitButton.textContent = 'Send Message';
+      }
+    });
+
+    continueBtn.addEventListener('click', () => {
+      formSuccess.style.display = 'none';
+      formContainer.style.display = 'block';
+      contactForm.reset();
+      // Redirect to property page if propertyId is present, else to properties page
+      const propId = new URLSearchParams(window.location.search).get('propertyId');
+      if (propId) {
+        window.location.href = `property.html?id=${encodeURIComponent(propId)}`;
+      } else {
+        window.location.href = 'properties.html';
+      }
+    });
+  </script>
+</body>
+</html> 

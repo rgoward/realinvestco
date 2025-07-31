@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Properties Spreadsheet - Real InvestCo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="styles.css">
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+  <style>
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f4f6fb; margin: 0; }
+    .container { max-width: 1600px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 32px; }
+    h1 { text-align: center; color: #1A237E; margin-bottom: 24px; }
+    .filter-bar { display: flex; gap: 16px; margin-bottom: 24px; flex-wrap: wrap; }
+    .filter-bar input, .filter-bar select { padding: 8px; border-radius: 6px; border: 1px solid #ccc; font-size: 1em; }
+    .properties-table { width: 100%; border-collapse: collapse; margin-top: 16px; }
+    .properties-table th, .properties-table td { padding: 10px 12px; border: 1px solid #e0e0e0; text-align: left; }
+    .properties-table th { background-color: #f8f9fa; color: #1A237E; font-weight: 600; cursor: pointer; user-select: none; }
+    .properties-table th.sort-asc::after { content: ' \25B2'; }
+    .properties-table th.sort-desc::after { content: ' \25BC'; }
+    .properties-table tr:nth-child(even) { background-color: #f4f6fb; }
+    .properties-table tr:hover { background-color: #e3eafc; }
+    .property-link { color: #1A237E; text-decoration: underline; font-weight: 500; cursor: pointer; }
+    .property-link:hover { color: #FFD700; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Real InvestCo Properties (Spreadsheet View)</h1>
+    <div class="filter-bar" id="filterBar">
+      <input type="text" id="filterTitle" placeholder="Title/Description">
+      <input type="text" id="filterCity" placeholder="City">
+      <input type="text" id="filterState" placeholder="State">
+      <input type="text" id="filterCounty" placeholder="County">
+      <input type="text" id="filterZip" placeholder="Zip Code">
+      <input type="number" id="filterMinPrice" placeholder="Min Price">
+      <input type="number" id="filterMaxPrice" placeholder="Max Price">
+      <input type="number" id="filterMinBeds" placeholder="Min Beds">
+      <input type="number" id="filterMaxBeds" placeholder="Max Beds">
+      <input type="number" id="filterMinBaths" placeholder="Min Baths">
+      <input type="number" id="filterMaxBaths" placeholder="Max Baths">
+      <button id="clearFilters">Clear Filters</button>
+    </div>
+    <table class="properties-table" id="propertiesTable">
+      <thead>
+        <tr>
+          <th data-col="title">Description - click below to go to the property card</th>
+          <th data-col="city">City</th>
+          <th data-col="state">State</th>
+          <th data-col="county">County</th>
+          <th data-col="zipCode">Zip</th>
+          <th data-col="price">Price</th>
+          <th data-col="arv">ARV</th>
+          <th data-col="bedrooms">Beds</th>
+          <th data-col="bathrooms">Baths</th>
+          <th data-col="area">Sq Ft</th>
+          <th data-col="lotsize">Lot Size</th>
+        </tr>
+      </thead>
+      <tbody id="propertiesTbody">
+        <tr><td colspan="11" style="text-align:center;">Loading properties...</td></tr>
+      </tbody>
+    </table>
+  </div>
+  <script>
+    // Firebase config
+    const firebaseConfig = {
+      apiKey: "AIzaSyDXifeppD7kBgpgwu74Aa-5h6t_4ieFwq0",
+      authDomain: "realinvestco-web.firebaseapp.com",
+      projectId: "realinvestco-web",
+      storageBucket: "realinvestco-web.firebasestorage.app",
+      messagingSenderId: "1021426656860",
+      appId: "1:1021426656860:web:1a1f9cb16b3f0a2158a899",
+      measurementId: "G-X30NR9MZGP"
+    };
+    if (!firebase.apps.length) firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
+    let properties = [];
+    let filteredProperties = [];
+    let sortCol = null;
+    let sortDir = 'asc';
+
+    async function fetchProperties() {
+      const snapshot = await db.collection('properties').get();
+      properties = snapshot.docs.map(doc => ({ ...doc.data(), docId: doc.id }));
+      filteredProperties = [...properties];
+      renderTable();
+    }
+
+    function renderTable() {
+      const tbody = document.getElementById('propertiesTbody');
+      if (filteredProperties.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;">No properties found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = filteredProperties.map(p => `
+        <tr>
+          <td><a href="property.html?id=${p.id}" class="property-link" target="_blank">${p.title || ''}</a></td>
+          <td>${p.city || ''}</td>
+          <td>${p.state || ''}</td>
+          <td>${p.county || ''}</td>
+          <td>${p.zipCode || ''}</td>
+          <td>${p.price || ''}</td>
+          <td>${p.arv || ''}</td>
+          <td>${p.bedrooms || ''}</td>
+          <td>${p.bathrooms || ''}</td>
+          <td>${p.area || ''}</td>
+          <td>${p.lotsize || ''}</td>
+        </tr>
+      `).join('');
+    }
+
+    function sortTable(col) {
+      if (sortCol === col) {
+        sortDir = sortDir === 'asc' ? 'desc' : 'asc';
+      } else {
+        sortCol = col;
+        sortDir = 'asc';
+      }
+      filteredProperties.sort((a, b) => {
+        let valA = a[col] || '';
+        let valB = b[col] || '';
+        
+        // Handle numeric columns (price, arv, bedrooms, bathrooms, area)
+        if (['price', 'arv', 'bedrooms', 'bathrooms', 'area'].includes(col)) {
+          // Remove dollar signs, commas, and spaces, then convert to number
+          valA = Number((valA + '').replace(/[\$,]/g, '').trim()) || 0;
+          valB = Number((valB + '').replace(/[\$,]/g, '').trim()) || 0;
+        } else {
+          // Handle text columns
+          valA = valA.toString().toLowerCase();
+          valB = valB.toString().toLowerCase();
+        }
+        
+        if (valA < valB) return sortDir === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDir === 'asc' ? 1 : -1;
+        return 0;
+      });
+      updateSortIndicators();
+      renderTable();
+    }
+
+    function updateSortIndicators() {
+      document.querySelectorAll('.properties-table th').forEach(th => {
+        th.classList.remove('sort-asc', 'sort-desc');
+        if (th.dataset.col === sortCol) {
+          th.classList.add(sortDir === 'asc' ? 'sort-asc' : 'sort-desc');
+        }
+      });
+    }
+
+    function applyFilters() {
+      filteredProperties = properties.filter(p => {
+        const title = (p.title || '').toLowerCase();
+        const city = (p.city || '').toLowerCase();
+        const state = (p.state || '').toLowerCase();
+        const county = (p.county || '').toLowerCase();
+        const zip = (p.zipCode || '').toString();
+        const price = Number(p.price) || 0;
+        const beds = Number(p.bedrooms) || 0;
+        const baths = Number(p.bathrooms) || 0;
+        const minPrice = Number(document.getElementById('filterMinPrice').value) || 0;
+        const maxPrice = Number(document.getElementById('filterMaxPrice').value) || Infinity;
+        const minBeds = Number(document.getElementById('filterMinBeds').value) || 0;
+        const maxBeds = Number(document.getElementById('filterMaxBeds').value) || Infinity;
+        const minBaths = Number(document.getElementById('filterMinBaths').value) || 0;
+        const maxBaths = Number(document.getElementById('filterMaxBaths').value) || Infinity;
+        return (
+          title.includes(document.getElementById('filterTitle').value.toLowerCase()) &&
+          city.includes(document.getElementById('filterCity').value.toLowerCase()) &&
+          state.includes(document.getElementById('filterState').value.toLowerCase()) &&
+          county.includes(document.getElementById('filterCounty').value.toLowerCase()) &&
+          zip.includes(document.getElementById('filterZip').value) &&
+          price >= minPrice && price <= maxPrice &&
+          beds >= minBeds && beds <= maxBeds &&
+          baths >= minBaths && baths <= maxBaths
+        );
+      });
+      renderTable();
+    }
+
+    document.getElementById('filterBar').addEventListener('input', applyFilters);
+    document.getElementById('clearFilters').addEventListener('click', () => {
+      document.querySelectorAll('.filter-bar input').forEach(input => input.value = '');
+      applyFilters();
+    });
+    document.querySelectorAll('.properties-table th').forEach(th => {
+      th.addEventListener('click', () => sortTable(th.dataset.col));
+    });
+
+    fetchProperties();
+  </script>
+</body>
+</html> 

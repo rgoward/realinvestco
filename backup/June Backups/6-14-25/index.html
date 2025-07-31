@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Real InvestCo Property</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f6fb;
+    }
+    .hero {
+      background: url('Pics/homepage-bg.png') no-repeat center center/cover;
+      min-height: 100vh;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .logo-container {
+      position: absolute;
+      top: 30px;
+      left: 1in;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .logo-absolute {
+      max-width: 350px;
+      background: rgba(255,255,255,1); /* Changed to fully opaque white */
+      border-radius: 16px;
+      padding: 20px 40px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      display: inline-block;
+    }
+    .headline {
+      font-size: 2.5em;
+      color: #1A237E;
+      margin-bottom: 0.5em;
+      font-weight: 700;
+      text-shadow: 0 2px 8px rgba(255,255,255,0.7);
+    }
+    .subtitle-container {
+      margin-top: 0.25in;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .subtitle {
+      font-size: 1.3em;
+      color: #333;
+      background: rgba(255,255,255,1); /* Solid white */
+      padding: 0.5em 1.5em;
+      border-radius: 8px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      text-align: center;
+      width: fit-content;
+    }
+    .cta-btn {
+      margin-top: 0.25in; /* 1/4 inch spacing below subtitle */
+      padding: 0.5em 1.5em;
+      font-size: 1.2em;
+      background: #1A237E;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 600;
+      box-shadow: 0 2px 8px rgba(26,35,126,0.15);
+      transition: background 0.2s, color 0.2s;
+      cursor: pointer;
+      display: inline-block;
+      text-align: center;
+    }
+    .cta-btn:hover {
+      background: #FFD700;
+      color: #1A237E;
+    }
+    @media (max-width: 600px) {
+      .headline { font-size: 1.5em; }
+      .logo-absolute { max-width: 90vw; padding: 10px 5vw; }
+      .logo-container {
+        position: relative;
+        top: 0.25in;
+        left: 0;
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+    }
+    .link-bar {
+      position: absolute;
+      top: 30px;
+      left: 900px;
+      background: #1A237E;
+      border-radius: 6px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 10px 24px 8px 24px;
+      display: flex;
+      gap: 28px;
+      z-index: 10;
+      width: auto;
+      min-width: unset;
+      max-width: unset;
+      margin-bottom: 24px;
+    }
+    .link-bar a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1.15em;
+      transition: color 0.2s;
+    }
+    .link-bar a:hover {
+      color: #FFD700;
+      text-shadow: 0 2px 8px rgba(26,144,255,0.15);
+    }
+    @media (max-width: 600px) {
+      .link-bar {
+        position: static;
+        margin: 0 auto 16px auto;
+        padding: 10px 5vw 5px 5vw;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <nav class="link-bar">
+      <a href="index.html">Home</a>
+      <a href="properties.html">Properties</a>
+      <a href="contact.html">Contact US</a>
+    </nav>
+    <div class="logo-container">
+      <div class="logo-absolute">
+        <img src="Pics/logo.png" alt="Real InvestCo Logo" style="max-width: 100%; height: auto;">
+      </div>
+      <div class="subtitle-container">
+        <div class="subtitle">Your partner for real estate investments.</div>
+        <a href="properties.html" class="cta-btn">View Properties</a>
+      </div>
+    </div>
+  </div>
+</body>
+</html>

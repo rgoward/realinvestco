@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Contact Us - Real InvestCo</title>
+  <style>
+    body, html {
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Arial, sans-serif;
+      background: #f4f6fb;
+    }
+    .link-bar {
+      position: absolute;
+      top: 30px;
+      left: 900px;
+      background: #1A237E;
+      border-radius: 6px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 10px 24px 8px 24px;
+      display: flex;
+      gap: 28px;
+      z-index: 10;
+    }
+    .link-bar a {
+      color: #fff;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 1.15em;
+      transition: color 0.2s;
+    }
+    .link-bar a:hover {
+      color: #FFD700;
+      text-shadow: 0 2px 8px rgba(26,144,255,0.15);
+    }
+    @media (max-width: 600px) {
+      .link-bar {
+        position: static;
+        margin: 0 auto 16px auto;
+        padding: 10px 5vw 5px 5vw;
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+      }
+    }
+    .contact-container {
+      max-width: 400px;
+      margin: 120px auto 0 auto;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+      padding: 32px;
+    }
+    .contact-container h1 {
+      text-align: center;
+      color: #1A237E;
+      margin-bottom: 24px;
+    }
+    .contact-container label {
+      font-weight: 600;
+      display: block;
+      margin-top: 16px;
+      margin-bottom: 4px;
+    }
+    .contact-container input,
+    .contact-container textarea {
+      width: 100%;
+      padding: 8px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      margin-bottom: 12px;
+      font-size: 1em;
+    }
+    .contact-container button {
+      width: 100%;
+      padding: 10px;
+      background: #1A237E;
+      color: #fff;
+      border: none;
+      border-radius: 8px;
+      font-size: 1.1em;
+      font-weight: 700;
+      cursor: pointer;
+      margin-top: 12px;
+      transition: background 0.2s;
+    }
+    .contact-container button:hover {
+      background: #FFD700;
+      color: #1A237E;
+    }
+  </style>
+</head>
+<body>
+  <nav class="link-bar">
+    <a href="index.html">Home</a>
+    <a href="properties.html">Properties</a>
+    <a href="contact.html">Contact US</a>
+  </nav>
+  <div class="contact-container">
+    <h1>Contact Us</h1>
+    <form>
+      <label for="name">Name:</label>
+      <input type="text" id="name" name="name" required>
+
+      <label for="email">Email:</label>
+      <input type="email" id="email" name="email" required>
+
+      <label for="phone">Phone:</label>
+      <input type="tel" id="phone" name="phone">
+
+      <label for="message">Message:</label>
+      <textarea id="message" name="message" rows="5" required></textarea>
+
+      <button type="submit">Send</button>
+    </form>
+  </div>
+</body>
+</html> 

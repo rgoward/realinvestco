@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Submissions - Real InvestCo</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background: #f4f6fb; color: #333; line-height: 1.6; }
+        .container { max-width: 1400px; margin: 40px auto; background: #fff; border-radius: 12px; box-shadow: 0 4px 24px rgba(0,0,0,0.08); padding: 32px; }
+        h1 { text-align: center; color: #1A237E; margin-bottom: 24px; }
+        .back-link { display: inline-block; margin-bottom: 24px; color: #1A237E; text-decoration: none; font-weight: 600; }
+        .back-link:hover { text-decoration: underline; }
+        #statusMsg { text-align: center; margin-top: 16px; font-weight: 500; }
+        .submissions-table { width: 100%; border-collapse: collapse; margin-top: 24px; }
+        .submissions-table th, .submissions-table td { padding: 12px 15px; border: 1px solid #e0e0e0; text-align: left; vertical-align: top; }
+        .submissions-table th { background-color: #f8f9fa; color: #1A237E; font-weight: 600; }
+        .submissions-table tr:nth-child(4n-3), .submissions-table tr:nth-child(4n-2) { background-color: #fff; }
+        .submissions-table tr:nth-child(4n-1), .submissions-table tr:nth-child(4n) { background-color: #D7E6F0; }
+        .submissions-table tr.data-row:hover, .submissions-table tr.data-row:hover + tr { background-color: #f1f1f1; }
+        .delete-btn { padding: 6px 12px; background: #c62828; color: #fff; border: none; border-radius: 6px; cursor: pointer; transition: background 0.2s; }
+        .delete-btn:hover { background: #b71c1c; }
+        .message-cell-expanded {
+            padding: 16px 24px !important;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            color: #333;
+            line-height: 1.5;
+            border-bottom: 2px solid #ccc !important;
+        }
+        .property-link { color: #1A237E; text-decoration: none; font-weight: 500; }
+        .property-link:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="admin-secret.html" class="back-link">&larr; Back to Admin Panel</a>
+        <h1>Contact & Property Inquiries</h1>
+        <div id="submissionsDisplay">
+            <p>Loading submissions...</p>
+        </div>
+        <div id="statusMsg"></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDXifeppD7kBgpgwu74Aa-5h6t_4ieFwq0",
+            authDomain: "realinvestco-web.firebaseapp.com",
+            projectId: "realinvestco-web",
+            storageBucket: "realinvestco-web.appspot.com",
+            messagingSenderId: "1021426656860",
+            appId: "1:1021426656860:web:1a1f9cb16b3f0a2158a899",
+            measurementId: "G-X30NR9MZGP"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                console.log('User authenticated:', user.email);
+                loadAllSubmissions();
+                // Test access to generalInquiries collection
+                testGeneralInquiriesAccess();
+            } else {
+                console.log('No user authenticated, redirecting to admin panel');
+                window.location.href = 'admin-secret.html';
+            }
+        });
+
+        async function loadAllSubmissions() {
+            console.log('=== loadAllSubmissions function called ===');
+            const display = document.getElementById('submissionsDisplay');
+            display.innerHTML = '<p>Loading...</p>';
+
+            try {
+                const generalPromise = db.collection('generalInquiries').get();
+                const propertyPromise = db.collection('propertyInquiries').get();
+
+                const [generalSnapshot, propertySnapshot] = await Promise.all([generalPromise, propertyPromise]);
+
+                console.log('General inquiries count:', generalSnapshot.size);
+                console.log('Property inquiries count:', propertySnapshot.size);
+
+                let submissions = [];
+                generalSnapshot.forEach(doc => {
+                    submissions.push({ ...doc.data(), id: doc.id, type: 'generalInquiries' });
+                });
+                propertySnapshot.forEach(doc => {
+                    submissions.push({ ...doc.data(), id: doc.id, type: 'propertyInquiries' });
+                });
+
+                console.log('Total submissions loaded:', submissions.length);
+                alert('Loaded ' + submissions.length + ' total submissions');
+
+                // Sort by timestamp, newest first
+                submissions.sort((a, b) => {
+                    const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : new Date(a.timestamp).getTime();
+                    const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : new Date(b.timestamp).getTime();
+                    return timeB - timeA;
+                });
+
+                renderSubmissions(submissions);
+
+            } catch (error) {
+                console.error("Error loading submissions:", error);
+                display.innerHTML = '<p style="color: red;">Error loading submissions. Please try again.</p>';
+            }
+        }
+
+        function renderSubmissions(submissions) {
+            const display = document.getElementById('submissionsDisplay');
+            if (submissions.length === 0) {
+                display.innerHTML = '<p>No submissions found.</p>';
+                return;
+            }
+
+            const table = `
+                <table class="submissions-table">
+                    <thead>
+                        <tr>
+                            <th>Date</th>
+                            <th>Name</th>
+                            <th>Contact</th>
+                            <th>Regarding</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${submissions.map(sub => {
+                            let dateDisplay = 'N/A';
+                            if (sub.timestamp) {
+                                if (sub.timestamp.seconds) {
+                                    dateDisplay = new Date(sub.timestamp.seconds * 1000).toLocaleString();
+                                } else {
+                                    dateDisplay = new Date(sub.timestamp).toLocaleString();
+                                }
+                            }
+                            
+                            return `
+                                <tr class="data-row">
+                                    <td>${dateDisplay}</td>
+                                    <td>${sub.name || ''}</td>
+                                    <td>
+                                        ${sub.email ? `<div>${sub.email}</div>` : ''}
+                                        ${sub.cellPhone ? `<div>${sub.cellPhone} (Cell)</div>` : ''}
+                                        ${sub.landline ? `<div>${sub.landline} (Landline)</div>` : ''}
+                                    </td>
+                                    <td>
+                                        ${sub.type === 'propertyInquiries' && sub.propertyTitle
+                                            ? `<a class="property-link" href="property.html?id=${sub.propertyNumericId}" target="_blank">${sub.propertyTitle}</a>`
+                                            : 'General Inquiry'
+                                        }
+                                    </td>
+                                    <td>
+                                        <button class="delete-btn" onclick="deleteSubmission('${sub.id}', '${sub.type}')">Delete</button>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td colspan="5" class="message-cell-expanded">${sub.message || 'No message provided.'}</td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+            display.innerHTML = table;
+        }
+
+        async function deleteSubmission(docId, type) {
+            if (!docId || !type) {
+                console.error('Missing docId or type for deletion');
+                return;
+            }
+
+            if (confirm(`Are you sure you want to delete this submission? This action cannot be undone.`)) {
+                const statusMsg = document.getElementById('statusMsg');
+                try {
+                    await db.collection(type).doc(docId).delete();
+                    statusMsg.textContent = 'Submission deleted successfully.';
+                    statusMsg.style.color = 'green';
+                    loadAllSubmissions(); // Refresh the list
+                } catch (error) {
+                    console.error("Error deleting document:", error);
+                    statusMsg.textContent = `Error deleting submission: ${error.message}`;
+                    statusMsg.style.color = 'red';
+                }
+                setTimeout(() => { statusMsg.textContent = ''; }, 3000);
+            }
+        }
+    </script>
+</body>
+</html> 

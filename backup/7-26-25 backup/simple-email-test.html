@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simple Email Test - Real InvestCo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: #f4f6fb;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #1A237E;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0d47a1;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        .status.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .status.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 style="color: #1A237E; text-align: center;">Simple Email Test</h1>
+        
+        <form id="testForm">
+            <div class="form-group">
+                <label for="testEmail">Your Email Address:</label>
+                <input type="email" id="testEmail" name="testEmail" required 
+                       placeholder="Enter your email to test">
+            </div>
+            
+            <div class="form-group">
+                <label for="testName">Your Name:</label>
+                <input type="text" id="testName" name="testName" 
+                       placeholder="Enter your name">
+            </div>
+            
+            <button type="submit" id="sendButton">Send Test Email</button>
+        </form>
+        
+        <div id="emailStatus" class="status"></div>
+    </div>
+
+    <script>
+        document.getElementById('testForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const sendButton = document.getElementById('sendButton');
+            const status = document.getElementById('emailStatus');
+            
+            sendButton.disabled = true;
+            sendButton.textContent = 'Sending...';
+            status.style.display = 'none';
+            
+            const formData = {
+                testEmail: document.getElementById('testEmail').value,
+                testName: document.getElementById('testName').value || 'Test User'
+            };
+            
+            try {
+                console.log('Sending request with data:', formData);
+                
+                const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/testColdOutreach', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                console.log('Response status:', response.status);
+                console.log('Response headers:', response.headers);
+                
+                const result = await response.json();
+                console.log('Response body:', result);
+                
+                status.style.display = 'block';
+                
+                if (response.ok) {
+                    status.className = 'status success';
+                    status.innerHTML = `
+                        <strong>✅ Email sent successfully!</strong><br>
+                        Sent to: ${result.sentTo}<br>
+                        Subject: ${result.subject}<br>
+                        Message ID: ${result.messageId}<br>
+                        Check your email inbox (and spam folder).
+                    `;
+                } else {
+                    status.className = 'status error';
+                    status.innerHTML = `
+                        <strong>❌ Failed to send email</strong><br>
+                        Error: ${result.error}<br>
+                        Details: ${result.details || 'No additional details'}
+                    `;
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                status.style.display = 'block';
+                status.className = 'status error';
+                status.innerHTML = `
+                    <strong>❌ Network error</strong><br>
+                    Error: ${error.message}
+                `;
+            } finally {
+                sendButton.disabled = false;
+                sendButton.textContent = 'Send Test Email';
+            }
+        });
+    </script>
+</body>
+</html> 

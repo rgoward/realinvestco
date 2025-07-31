@@ -1,0 +1,1220 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Contacts - Real InvestCo</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <style>
+        body { 
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; 
+            background: #f4f6fb; 
+            color: #333; 
+            line-height: 1.6; 
+            margin: 0;
+            padding: 20px;
+        }
+        .container { 
+            max-width: 1400px; 
+            margin: 0 auto; 
+            background: #fff; 
+            border-radius: 12px; 
+            box-shadow: 0 4px 24px rgba(0,0,0,0.08); 
+            padding: 32px; 
+        }
+        h1 { 
+            text-align: center; 
+            color: #1A237E; 
+            margin-bottom: 24px; 
+        }
+        .back-link { 
+            display: inline-block; 
+            margin-bottom: 24px; 
+            color: #1A237E; 
+            text-decoration: none; 
+            font-weight: 600; 
+        }
+        .back-link:hover { 
+            text-decoration: underline; 
+        }
+        
+        /* Form Styles */
+        .contact-form {
+            background: #f8f9fa;
+            padding: 24px;
+            border-radius: 8px;
+            margin-bottom: 32px;
+            border: 1px solid #e9ecef;
+        }
+        .form-row {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 16px;
+            align-items: flex-end;
+        }
+        .form-group {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+        .form-group label {
+            font-weight: 600;
+            margin-bottom: 4px;
+            color: #333;
+        }
+        .form-group input, .form-group select, .form-group textarea {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #1A237E;
+            box-shadow: 0 0 0 2px rgba(26, 35, 126, 0.1);
+        }
+        .required {
+            color: #d32f2f;
+        }
+        .submit-btn {
+            background: #1A237E;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .submit-btn:hover {
+            background: #283593;
+        }
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        /* Table Styles */
+        .contacts-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 24px;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .contacts-table th, .contacts-table td {
+            padding: 12px 16px;
+            text-align: left;
+            border-bottom: 1px solid #e0e0e0;
+        }
+        .contacts-table th {
+            background-color: #1A237E;
+            color: white;
+            font-weight: 600;
+        }
+        .contacts-table tr:hover {
+            background-color: #f8f9fa;
+        }
+        .contact-type {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .contact-type.outbound {
+            background: #e3f2fd;
+            color: #1976d2;
+        }
+        .contact-type.inbound {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+        .contact-type.duplicate {
+            background: #fff3e0;
+            color: #f57c00;
+        }
+        
+        /* Status Messages */
+        .status-msg {
+            padding: 12px;
+            border-radius: 6px;
+            margin: 16px 0;
+            font-weight: 500;
+        }
+        .status-msg.success {
+            background: #e8f5e8;
+            color: #2e7d32;
+            border: 1px solid #c8e6c9;
+        }
+        .status-msg.error {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+        }
+        .status-msg.warning {
+            background: #fff3e0;
+            color: #f57c00;
+            border: 1px solid #ffcc02;
+        }
+        
+        /* Search and Filter */
+        .controls {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 24px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+        }
+        .search-box {
+            flex: 1;
+            min-width: 200px;
+            position: relative;
+            display: flex;
+            align-items: center;
+        }
+        .search-box input {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            padding-right: 60px;
+        }
+        .clear-btn {
+            position: absolute;
+            right: 8px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        .clear-btn:hover {
+            background: #d32f2f;
+        }
+        .filter-select {
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            min-width: 150px;
+        }
+        
+        /* Action Buttons */
+        .action-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            transition: background 0.2s;
+        }
+        .view-btn {
+            background: #1A237E;
+            color: white;
+        }
+        .view-btn:hover {
+            background: #283593;
+        }
+        .send-btn {
+            background: #4caf50;
+            color: white;
+        }
+        .send-btn:hover {
+            background: #388e3c;
+        }
+        .delete-btn {
+            background: #d32f2f;
+            color: white;
+        }
+        .delete-btn:hover {
+            background: #b71c1c;
+        }
+        
+        /* Contact History Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+        .modal-content {
+            background-color: white;
+            margin: 5% auto;
+            padding: 24px;
+            border-radius: 8px;
+            width: 80%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        .close:hover {
+            color: #000;
+        }
+        .history-item {
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 16px;
+            margin-bottom: 12px;
+            background: #f8f9fa;
+        }
+        .history-date {
+            font-weight: 600;
+            color: #1A237E;
+            margin-bottom: 8px;
+        }
+        .history-type {
+            font-size: 12px;
+            text-transform: uppercase;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .history-message {
+            color: #666;
+            font-style: italic;
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 12px;
+            }
+            .controls {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .contacts-table {
+                font-size: 14px;
+            }
+            .contacts-table th, .contacts-table td {
+                padding: 8px 12px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="admin-secret.html" class="back-link">&larr; Back to Admin Panel</a>
+        <h1>Manage Contacts</h1>
+        
+        <!-- Email Templates Section -->
+        <div class="contact-form" style="margin-bottom: 24px;">
+            <h3>Email Templates</h3>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="outboundTemplate">Outbound Contact Template</label>
+                    <textarea id="outboundTemplate" rows="6" placeholder="Enter your outbound contact email template...">Hello {FIRSTNAME},
+
+Thank you for connecting with us at Real InvestCo. I wanted to follow up on our recent conversation about real estate investment opportunities.
+
+As we discussed, we specialize in helping investors find the right properties for their goals, whether that's wholesale deals, fix-and-flip opportunities, or long-term investments.
+
+I'd love to schedule a brief call to discuss your specific investment criteria and show you some current opportunities that might be a good fit.
+
+You can reach me directly at [YOUR_PHONE] or reply to this email to set up a time that works for you.
+
+Best regards,
+Real InvestCo Team</textarea>
+                </div>
+                <div class="form-group">
+                    <label for="inboundTemplate">Inbound Contact Template</label>
+                    <textarea id="inboundTemplate" rows="6" placeholder="Enter your inbound contact email template...">Hello {FIRSTNAME},
+
+Thank you for reaching out to Real InvestCo! We've received your inquiry and I'm excited to help you with your real estate investment goals.
+
+I'll be reviewing your message and getting back to you within 24 hours with personalized information about properties that match your criteria.
+
+In the meantime, you can browse our current listings at our website to get a sense of the opportunities we have available.
+
+If you have any urgent questions, feel free to call me directly at [YOUR_PHONE].
+
+Looking forward to helping you find the perfect investment opportunity!
+
+Best regards,
+Real InvestCo Team</textarea>
+                </div>
+            </div>
+            <button type="button" class="submit-btn" onclick="saveEmailTemplates()">Save Templates</button>
+        </div>
+
+        <!-- Add New Contact Form -->
+        <div class="contact-form">
+            <h3>Add New Outbound Contact</h3>
+            <form id="addContactForm">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="name">Full Name <span class="required">*</span></label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email Address <span class="required">*</span></label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="cellPhone">Cell Phone <span class="required">*</span></label>
+                        <input type="tel" id="cellPhone" name="cellPhone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="landline">Landline Phone</label>
+                        <input type="tel" id="landline" name="landline">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="contactSource">Contact Source <span class="required">*</span></label>
+                        <select id="contactSource" name="contactSource" required>
+                            <option value="">Select source...</option>
+                            <option value="networking">Networking Event</option>
+                            <option value="referral">Referral</option>
+                            <option value="cold_call">Cold Call</option>
+                            <option value="social_media">Social Media</option>
+                            <option value="business_card">Business Card</option>
+                            <option value="property_sign">Property Sign</option>
+                            <option value="online_search">Online Search</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="contactNotes">Initial Notes</label>
+                        <textarea id="contactNotes" name="contactNotes" rows="3" placeholder="How did you get this contact? Any initial observations..."></textarea>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="newsletter">Subscribe to Newsletter</label>
+                        <input type="checkbox" id="newsletter" name="newsletter">
+                    </div>
+                </div>
+                <button type="submit" class="submit-btn">Add Contact</button>
+            </form>
+        </div>
+        
+        <!-- Status Messages -->
+        <div id="statusMsg"></div>
+        
+        <!-- Search and Filter Controls -->
+        <div class="controls">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Search by name, email, phone, or source...">
+                <button type="button" id="clearSearch" class="clear-btn" style="display:none;">Clear</button>
+            </div>
+            <select id="filterType" class="filter-select">
+                <option value="all">All Contacts</option>
+                <option value="outbound">Outbound Only</option>
+                <option value="inbound">Inbound Only</option>
+                <option value="duplicate">Potential Duplicates</option>
+            </select>
+            <select id="filterSource" class="filter-select">
+                <option value="all">All Sources</option>
+                <option value="networking">Networking</option>
+                <option value="referral">Referral</option>
+                <option value="cold_call">Cold Call</option>
+                <option value="social_media">Social Media</option>
+                <option value="business_card">Business Card</option>
+                <option value="property_sign">Property Sign</option>
+                <option value="online_search">Online Search</option>
+                <option value="contact_form">Contact Form</option>
+                <option value="property_inquiry">Property Inquiry</option>
+                <option value="other">Other</option>
+            </select>
+        </div>
+        
+        <!-- Contacts Table -->
+        <div id="contactsDisplay">
+            <p>Loading contacts...</p>
+        </div>
+    </div>
+    
+    <!-- Contact History Modal -->
+    <div id="historyModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h3 id="modalTitle">Contact History</h3>
+            <div id="modalContent"></div>
+        </div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyDXifeppD7kBgpgwu74Aa-5h6t_4ieFwq0",
+            authDomain: "realinvestco-web.firebaseapp.com",
+            projectId: "realinvestco-web",
+            storageBucket: "realinvestco-web.appspot.com",
+            messagingSenderId: "1021426656860",
+            appId: "1:1021426656860:web:1a1f9cb16b3f0a2158a899",
+            measurementId: "G-X30NR9MZGP"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        let allContacts = [];
+        let filteredContacts = [];
+
+
+
+        // Load all contacts from both collections
+        async function loadAllContacts() {
+            const display = document.getElementById('contactsDisplay');
+            display.innerHTML = '<p>Loading contacts...</p>';
+
+            try {
+                // Load from all collections with error handling for each
+                let generalSnapshot, propertySnapshot, outboundSnapshot;
+                
+                try {
+                    generalSnapshot = await db.collection('generalInquiries').get();
+                } catch (error) {
+                    console.warn('Could not load generalInquiries:', error);
+                    generalSnapshot = { forEach: () => {} }; // Empty snapshot
+                }
+                
+                try {
+                    propertySnapshot = await db.collection('propertyInquiries').get();
+                } catch (error) {
+                    console.warn('Could not load propertyInquiries:', error);
+                    propertySnapshot = { forEach: () => {} }; // Empty snapshot
+                }
+                
+                try {
+                    outboundSnapshot = await db.collection('outboundContacts').get();
+                } catch (error) {
+                    console.warn('Could not load outboundContacts:', error);
+                    outboundSnapshot = { forEach: () => {} }; // Empty snapshot
+                }
+
+                allContacts = [];
+
+                // Process general inquiries
+                generalSnapshot.forEach(doc => {
+                    allContacts.push({
+                        ...doc.data(),
+                        id: doc.id,
+                        type: 'inbound',
+                        source: 'contact_form',
+                        collection: 'generalInquiries'
+                    });
+                });
+
+                // Process property inquiries
+                propertySnapshot.forEach(doc => {
+                    allContacts.push({
+                        ...doc.data(),
+                        id: doc.id,
+                        type: 'inbound',
+                        source: 'property_inquiry',
+                        collection: 'propertyInquiries'
+                    });
+                });
+
+                // Process outbound contacts
+                outboundSnapshot.forEach(doc => {
+                    allContacts.push({
+                        ...doc.data(),
+                        id: doc.id,
+                        type: 'outbound',
+                        collection: 'outboundContacts'
+                    });
+                });
+
+                // Sort by timestamp, newest first
+                allContacts.sort((a, b) => {
+                    const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : new Date(a.timestamp).getTime();
+                    const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : new Date(b.timestamp).getTime();
+                    return timeB - timeA;
+                });
+
+                // Check for duplicates
+                markDuplicates();
+                
+                // Apply initial filter
+                applyFilters();
+                
+                showStatus(`Loaded ${allContacts.length} total contacts`, 'success');
+
+            } catch (error) {
+                console.error("Error loading contacts:", error);
+                display.innerHTML = '<p style="color: red;">Error loading contacts. Please try again.</p>';
+                showStatus('Error loading contacts: ' + error.message, 'error');
+            }
+        }
+
+        // Mark potential duplicates
+        function markDuplicates() {
+            const emailMap = new Map();
+            const phoneMap = new Map();
+
+            allContacts.forEach(contact => {
+                const email = contact.email?.toLowerCase().trim();
+                const phone = contact.cellPhone?.replace(/\D/g, '');
+
+                if (email) {
+                    if (emailMap.has(email)) {
+                        contact.isDuplicate = true;
+                        emailMap.get(email).isDuplicate = true;
+                    } else {
+                        emailMap.set(email, contact);
+                    }
+                }
+
+                if (phone) {
+                    if (phoneMap.has(phone)) {
+                        contact.isDuplicate = true;
+                        phoneMap.get(phone).isDuplicate = true;
+                    } else {
+                        phoneMap.set(phone, contact);
+                    }
+                }
+            });
+        }
+
+        // Apply search and filter
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filterType = document.getElementById('filterType').value;
+            const filterSource = document.getElementById('filterSource').value;
+            const clearBtn = document.getElementById('clearSearch');
+
+            // Show/hide clear button
+            clearBtn.style.display = searchTerm ? 'block' : 'none';
+
+            filteredContacts = allContacts.filter(contact => {
+                // Search filter - enhanced to include source
+                const matchesSearch = !searchTerm || 
+                    contact.name?.toLowerCase().includes(searchTerm) ||
+                    contact.email?.toLowerCase().includes(searchTerm) ||
+                    contact.cellPhone?.includes(searchTerm) ||
+                    contact.landline?.includes(searchTerm) ||
+                    contact.contactSource?.toLowerCase().includes(searchTerm) ||
+                    contact.source?.toLowerCase().includes(searchTerm);
+
+                // Type filter
+                let matchesType = true;
+                if (filterType === 'outbound') {
+                    matchesType = contact.type === 'outbound';
+                } else if (filterType === 'inbound') {
+                    matchesType = contact.type === 'inbound';
+                } else if (filterType === 'duplicate') {
+                    matchesType = contact.isDuplicate === true;
+                }
+
+                // Source filter
+                let matchesSource = true;
+                if (filterSource !== 'all') {
+                    const contactSource = contact.contactSource || contact.source;
+                    matchesSource = contactSource === filterSource;
+                }
+
+                return matchesSearch && matchesType && matchesSource;
+            });
+
+            renderContacts();
+        }
+
+        // Render contacts table
+        function renderContacts() {
+            const display = document.getElementById('contactsDisplay');
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            if (filteredContacts.length === 0) {
+                display.innerHTML = '<p>No contacts found matching your criteria.</p>';
+                return;
+            }
+
+            // Helper function to highlight search terms
+            function highlightText(text, searchTerm) {
+                if (!searchTerm || !text) return text;
+                const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+                return text.replace(regex, '<mark style="background-color: #FFD700; padding: 1px 2px; border-radius: 2px;">$1</mark>');
+            }
+
+            const table = `
+                <div style="margin-bottom: 16px;">
+                    <button id="deleteSelectedBtn" class="delete-btn" style="display:none; margin-right: 8px;">Delete Selected (0)</button>
+                    <button id="selectAllBtn" class="action-btn" style="background: #1A237E;">Select All</button>
+                    <button id="deselectAllBtn" class="action-btn" style="background: #666;">Deselect All</button>
+                </div>
+                <table class="contacts-table">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;"><input type="checkbox" id="selectAllCheckbox"></th>
+                            <th>Date</th>
+                            <th>Name</th>
+                            <th>Contact Info</th>
+                            <th>Type</th>
+                            <th>Source</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${filteredContacts.map(contact => {
+                            let dateDisplay = 'N/A';
+                            if (contact.timestamp) {
+                                if (contact.timestamp.seconds) {
+                                    dateDisplay = new Date(contact.timestamp.seconds * 1000).toLocaleDateString();
+                                } else {
+                                    dateDisplay = new Date(contact.timestamp).toLocaleDateString();
+                                }
+                            }
+
+                            const typeClass = contact.isDuplicate ? 'duplicate' : contact.type;
+                            const typeText = contact.isDuplicate ? 'Duplicate' : (contact.type === 'outbound' ? 'Outbound' : 'Inbound');
+                            
+                            const sourceText = contact.contactSource || contact.source || 'Unknown';
+
+                            return `
+                                <tr>
+                                    <td><input type="checkbox" class="contactCheckbox" data-id="${contact.id}" data-collection="${contact.collection}"></td>
+                                    <td>${dateDisplay}</td>
+                                    <td>${highlightText(contact.name || '', searchTerm)}</td>
+                                    <td>
+                                        ${contact.email ? `<div>${highlightText(contact.email, searchTerm)}</div>` : ''}
+                                        ${contact.cellPhone ? `<div>${highlightText(contact.cellPhone, searchTerm)} (Cell)</div>` : ''}
+                                        ${contact.landline ? `<div>${highlightText(contact.landline, searchTerm)} (Landline)</div>` : ''}
+                                    </td>
+                                    <td><span class="contact-type ${typeClass}">${typeText}</span></td>
+                                    <td>${highlightText(sourceText, searchTerm)}</td>
+                                    <td>
+                                        <button class="action-btn view-btn" onclick="viewContactHistory('${contact.id}', '${contact.collection}')">History</button>
+                                        <button class="action-btn send-btn" onclick="sendAutomatedEmail('${contact.id}', '${contact.collection}')">Send Email</button>
+                                        <button class="action-btn delete-btn" onclick="deleteContact('${contact.id}', '${contact.collection}')">Delete</button>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+            display.innerHTML = table;
+            
+            // Set up bulk delete functionality
+            setupBulkDelete();
+        }
+
+        // Set up bulk delete functionality
+        function setupBulkDelete() {
+            const selectAllCheckbox = document.getElementById('selectAllCheckbox');
+            const contactCheckboxes = document.querySelectorAll('.contactCheckbox');
+            const deleteSelectedBtn = document.getElementById('deleteSelectedBtn');
+            const selectAllBtn = document.getElementById('selectAllBtn');
+            const deselectAllBtn = document.getElementById('deselectAllBtn');
+
+            // Update delete button text and visibility
+            function updateDeleteButton() {
+                const checkedBoxes = document.querySelectorAll('.contactCheckbox:checked');
+                const count = checkedBoxes.length;
+                
+                if (count > 0) {
+                    deleteSelectedBtn.style.display = 'inline-block';
+                    deleteSelectedBtn.textContent = `Delete Selected (${count})`;
+                } else {
+                    deleteSelectedBtn.style.display = 'none';
+                }
+            }
+
+            // Select all functionality
+            selectAllCheckbox.addEventListener('change', function() {
+                contactCheckboxes.forEach(cb => {
+                    cb.checked = selectAllCheckbox.checked;
+                });
+                updateDeleteButton();
+            });
+
+            // Individual checkbox functionality
+            contactCheckboxes.forEach(cb => {
+                cb.addEventListener('change', function() {
+                    if (!cb.checked) {
+                        selectAllCheckbox.checked = false;
+                    } else if (document.querySelectorAll('.contactCheckbox:checked').length === contactCheckboxes.length) {
+                        selectAllCheckbox.checked = true;
+                    }
+                    updateDeleteButton();
+                });
+            });
+
+            // Select All button
+            selectAllBtn.addEventListener('click', function() {
+                contactCheckboxes.forEach(cb => cb.checked = true);
+                selectAllCheckbox.checked = true;
+                updateDeleteButton();
+            });
+
+            // Deselect All button
+            deselectAllBtn.addEventListener('click', function() {
+                contactCheckboxes.forEach(cb => cb.checked = false);
+                selectAllCheckbox.checked = false;
+                updateDeleteButton();
+            });
+
+            // Delete Selected button
+            deleteSelectedBtn.addEventListener('click', async function() {
+                const checkedBoxes = document.querySelectorAll('.contactCheckbox:checked');
+                const count = checkedBoxes.length;
+                
+                if (count === 0) return;
+                
+                const confirmMessage = `Are you sure you want to delete ${count} contact(s)? This action cannot be undone.`;
+                if (!confirm(confirmMessage)) return;
+
+                const statusMsg = document.getElementById('statusMsg');
+                let successCount = 0;
+                let errorCount = 0;
+
+                // Disable the delete button during operation
+                deleteSelectedBtn.disabled = true;
+                deleteSelectedBtn.textContent = 'Deleting...';
+
+                for (const checkbox of checkedBoxes) {
+                    try {
+                        const contactId = checkbox.getAttribute('data-id');
+                        const collection = checkbox.getAttribute('data-collection');
+                        
+                        await db.collection(collection).doc(contactId).delete();
+                        successCount++;
+                    } catch (error) {
+                        errorCount++;
+                        console.error('Error deleting contact:', error);
+                    }
+                }
+
+                // Re-enable the delete button
+                deleteSelectedBtn.disabled = false;
+                updateDeleteButton();
+
+                // Show results
+                if (errorCount === 0) {
+                    showStatus(`${successCount} contact(s) deleted successfully!`, 'success');
+                } else {
+                    showStatus(`${successCount} deleted, ${errorCount} failed.`, 'warning');
+                }
+
+                // Refresh the contact list
+                loadAllContacts();
+            });
+        }
+
+        // Add new outbound contact
+        document.getElementById('addContactForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = this.querySelector('.submit-btn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Adding...';
+
+            const formData = {
+                name: this.name.value.trim(),
+                email: this.email.value.trim(),
+                cellPhone: this.cellPhone.value.trim(),
+                landline: this.landline.value.trim(),
+                contactSource: this.contactSource.value,
+                contactNotes: this.contactNotes.value.trim(),
+                newsletter: this.newsletter.checked,
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                type: 'outbound'
+            };
+
+            try {
+                // Check for existing contacts with same email or phone
+                const existingContacts = await checkForDuplicates(formData.email, formData.cellPhone);
+                
+                if (existingContacts.length > 0) {
+                    const duplicateMsg = `Potential duplicate found:\n${existingContacts.map(c => 
+                        `${c.name} (${c.email}) - ${c.type} contact from ${c.contactSource || c.source || 'unknown source'}`
+                    ).join('\n')}\n\nDo you want to add this contact anyway?`;
+                    
+                    if (!confirm(duplicateMsg)) {
+                        return;
+                    }
+                }
+
+                // Save to outboundContacts collection
+                const docRef = await db.collection('outboundContacts').add(formData);
+
+                // If newsletter is checked, add to Brevo
+                if (formData.newsletter) {
+                    await addToBrevo(formData);
+                }
+
+                // Automatically send welcome email to outbound contacts via testColdOutreach
+                try {
+                    const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/testColdOutreach', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            testEmail: formData.email,
+                            testName: formData.name
+                        })
+                    });
+
+                    if (!response.ok) {
+                        console.error('Failed to send welcome email via testColdOutreach');
+                    } else {
+                        const result = await response.json();
+                        if (!result.success) {
+                            console.error('Failed to send welcome email:', result.error || result.details);
+                        }
+                    }
+                } catch (emailError) {
+                    console.error('Error sending welcome email:', emailError);
+                    // Don't fail the contact creation if email fails
+                }
+
+                showStatus('Contact added successfully and welcome email sent!', 'success');
+                this.reset();
+                loadAllContacts(); // Refresh the list
+
+            } catch (error) {
+                console.error('Error adding contact:', error);
+                showStatus('Error adding contact: ' + error.message, 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Add Contact';
+            }
+        });
+
+        // Check for duplicates
+        async function checkForDuplicates(email, phone) {
+            const duplicates = [];
+            
+            // Check in all collections
+            const collections = ['generalInquiries', 'propertyInquiries', 'outboundContacts'];
+            
+            for (const collection of collections) {
+                let query = db.collection(collection);
+                
+                // Check by email
+                if (email) {
+                    const emailSnapshot = await query.where('email', '==', email).get();
+                    emailSnapshot.forEach(doc => {
+                        duplicates.push({ ...doc.data(), id: doc.id, collection });
+                    });
+                }
+                
+                // Check by phone (normalized)
+                if (phone) {
+                    const normalizedPhone = phone.replace(/\D/g, '');
+                    const phoneSnapshot = await query.where('cellPhone', '==', phone).get();
+                    phoneSnapshot.forEach(doc => {
+                        duplicates.push({ ...doc.data(), id: doc.id, collection });
+                    });
+                }
+            }
+            
+            return duplicates;
+        }
+
+        // Add to Brevo newsletter
+        async function addToBrevo(contactData) {
+            try {
+                await fetch('https://api.brevo.com/v3/contacts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'api-key': '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',
+                    },
+                    body: JSON.stringify({
+                        email: contactData.email,
+                        attributes: {
+                            FIRSTNAME: contactData.name,
+                            CELLPHONE: contactData.cellPhone,
+                            LANDLINE: contactData.landline,
+                            CONTACT_SOURCE: contactData.contactSource,
+                            CONTACT_NOTES: contactData.contactNotes
+                        },
+                        listIds: [],
+                        updateEnabled: true
+                    })
+                });
+            } catch (error) {
+                console.error('Error adding to Brevo:', error);
+            }
+        }
+
+        // View contact history
+        window.viewContactHistory = async function(contactId, collection) {
+            try {
+                const doc = await db.collection(collection).doc(contactId).get();
+                if (!doc.exists) {
+                    showStatus('Contact not found', 'error');
+                    return;
+                }
+
+                const contact = doc.data();
+                const modal = document.getElementById('historyModal');
+                const modalTitle = document.getElementById('modalTitle');
+                const modalContent = document.getElementById('modalContent');
+
+                modalTitle.textContent = `Contact History - ${contact.name}`;
+
+                // Get all interactions for this contact
+                const interactions = [];
+                
+                // Check all collections for this contact
+                const collections = ['generalInquiries', 'propertyInquiries', 'outboundContacts'];
+                for (const col of collections) {
+                    const snapshot = await db.collection(col).where('email', '==', contact.email).get();
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        interactions.push({
+                            timestamp: data.timestamp,
+                            type: col === 'outboundContacts' ? 'Outbound Contact' : 
+                                  col === 'propertyInquiries' ? 'Property Inquiry' : 'General Inquiry',
+                            message: data.message || data.contactNotes || 'No message',
+                            propertyTitle: data.propertyTitle || null
+                        });
+                    });
+                }
+
+                // Sort by timestamp
+                interactions.sort((a, b) => {
+                    const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : new Date(a.timestamp).getTime();
+                    const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : new Date(b.timestamp).getTime();
+                    return timeB - timeA;
+                });
+
+                modalContent.innerHTML = `
+                    <div class="history-item">
+                        <div class="history-date">Contact Information</div>
+                        <div><strong>Name:</strong> ${contact.name}</div>
+                        <div><strong>Email:</strong> ${contact.email}</div>
+                        <div><strong>Cell:</strong> ${contact.cellPhone || 'N/A'}</div>
+                        <div><strong>Landline:</strong> ${contact.landline || 'N/A'}</div>
+                        <div><strong>Source:</strong> ${contact.contactSource || contact.source || 'Unknown'}</div>
+                    </div>
+                    <h4>Interaction History (${interactions.length} total)</h4>
+                    ${interactions.map(interaction => {
+                        let dateDisplay = 'N/A';
+                        if (interaction.timestamp) {
+                            if (interaction.timestamp.seconds) {
+                                dateDisplay = new Date(interaction.timestamp.seconds * 1000).toLocaleString();
+                            } else {
+                                dateDisplay = new Date(interaction.timestamp).toLocaleString();
+                            }
+                        }
+                        
+                        return `
+                            <div class="history-item">
+                                <div class="history-date">${dateDisplay}</div>
+                                <div class="history-type">${interaction.type}</div>
+                                ${interaction.propertyTitle ? `<div><strong>Property:</strong> ${interaction.propertyTitle}</div>` : ''}
+                                <div class="history-message">${interaction.message}</div>
+                            </div>
+                        `;
+                    }).join('')}
+                `;
+
+                modal.style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading contact history:', error);
+                showStatus('Error loading contact history: ' + error.message, 'error');
+            }
+        };
+
+        // Delete contact
+        window.deleteContact = async function(contactId, collection) {
+            if (confirm('Are you sure you want to delete this contact? This action cannot be undone.')) {
+                try {
+                    await db.collection(collection).doc(contactId).delete();
+                    showStatus('Contact deleted successfully', 'success');
+                    loadAllContacts();
+                } catch (error) {
+                    console.error('Error deleting contact:', error);
+                    showStatus('Error deleting contact: ' + error.message, 'error');
+                }
+            }
+        };
+
+        // Close modal
+        document.querySelector('.close').addEventListener('click', function() {
+            document.getElementById('historyModal').style.display = 'none';
+        });
+
+        window.addEventListener('click', function(event) {
+            const modal = document.getElementById('historyModal');
+            if (event.target === modal) {
+                modal.style.display = 'none';
+            }
+        });
+
+        // Search and filter event listeners
+        document.getElementById('searchInput').addEventListener('input', applyFilters);
+        document.getElementById('filterType').addEventListener('change', applyFilters);
+        document.getElementById('filterSource').addEventListener('change', applyFilters);
+        
+        // Clear search functionality
+        document.getElementById('clearSearch').addEventListener('click', function() {
+            document.getElementById('searchInput').value = '';
+            applyFilters();
+        });
+
+        // Send automated email based on contact type using webhook
+        window.sendAutomatedEmail = async function(contactId, collection) {
+            try {
+                const doc = await db.collection(collection).doc(contactId).get();
+                if (!doc.exists) {
+                    showStatus('Contact not found', 'error');
+                    return;
+                }
+
+                const contact = doc.data();
+                const contactType = contact.type || (collection === 'outboundContacts' ? 'outbound' : 'inbound');
+                
+                // Determine email type for webhook
+                let emailType;
+                if (contactType === 'outbound') {
+                    emailType = 'outbound_welcome';
+                } else {
+                    emailType = 'inbound_confirmation';
+                }
+
+                // Send email via testColdOutreach function (which works with Brevo)
+                console.log('Sending email to:', contact.email, 'Name:', contact.name);
+                console.log('Request body:', JSON.stringify({
+                    testEmail: contact.email,
+                    testName: contact.name
+                }));
+                
+                try {
+                    const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/testColdOutreach', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            testEmail: contact.email,
+                            testName: contact.name
+                        })
+                    });
+
+                    console.log('Response status:', response.status);
+                    console.log('Response ok:', response.ok);
+                    console.log('Response headers:', response.headers);
+
+                    if (!response.ok) {
+                        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    }
+
+                    const result = await response.json();
+                    console.log('Response result:', result);
+
+                    if (result.success) {
+                        showStatus(`Automated email sent to ${contact.name}`, 'success');
+                    } else {
+                        throw new Error(result.error || result.details || 'Failed to send email');
+                    }
+                } catch (fetchError) {
+                    console.error('Fetch error:', fetchError);
+                    throw fetchError;
+                }
+
+            } catch (error) {
+                console.error('Error sending automated email:', error);
+                console.error('Error details:', {
+                    name: error.name,
+                    message: error.message,
+                    stack: error.stack
+                });
+                showStatus('Error sending email: ' + error.message, 'error');
+            }
+        };
+
+        // Load email templates on page load
+        async function loadEmailTemplates() {
+            try {
+                const doc = await db.collection('settings').doc('emailTemplates').get();
+                if (doc.exists) {
+                    const data = doc.data();
+                    document.getElementById('outboundTemplate').value = data.outboundTemplate || '';
+                    document.getElementById('inboundTemplate').value = data.inboundTemplate || '';
+                }
+            } catch (error) {
+                console.error('Error loading email templates:', error);
+            }
+        }
+
+        // Save email templates
+        window.saveEmailTemplates = async function() {
+            try {
+                const outboundTemplate = document.getElementById('outboundTemplate').value;
+                const inboundTemplate = document.getElementById('inboundTemplate').value;
+
+                await db.collection('settings').doc('emailTemplates').set({
+                    outboundTemplate: outboundTemplate,
+                    inboundTemplate: inboundTemplate,
+                    updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+                });
+
+                showStatus('Email templates saved successfully!', 'success');
+            } catch (error) {
+                console.error('Error saving email templates:', error);
+                showStatus('Error saving templates: ' + error.message, 'error');
+            }
+        };
+
+        // Helper function to replace template variables
+        function replaceTemplateVariables(template, contact) {
+            return template
+                .replace(/{FIRSTNAME}/g, contact.name || '')
+                .replace(/{EMAIL}/g, contact.email || '')
+                .replace(/{PHONE}/g, contact.cellPhone || '')
+                .replace(/{SOURCE}/g, contact.contactSource || contact.source || '')
+                .replace(/{MESSAGE}/g, contact.message || contact.contactNotes || '');
+        }
+
+        // Show status message
+        function showStatus(message, type) {
+            const statusDiv = document.getElementById('statusMsg');
+            statusDiv.textContent = message;
+            statusDiv.className = `status-msg ${type}`;
+            
+            setTimeout(() => {
+                statusDiv.textContent = '';
+                statusDiv.className = 'status-msg';
+            }, 5000);
+        }
+
+        // Load templates when page loads
+        auth.onAuthStateChanged(user => {
+            if (user) {
+                console.log('User authenticated:', user.email);
+                loadAllContacts();
+                loadEmailTemplates(); // Load email templates
+            } else {
+                console.log('No user authenticated, redirecting to admin panel');
+                window.location.href = 'admin-secret.html';
+            }
+        });
+    </script>
+</body>
+</html> 
