@@ -36,7 +36,10 @@
         <div id="propertyTitle" style="text-align:center; font-size:1.2em; margin-bottom:24px;"></div>
         <div id="propertyIdDisplay" style="text-align:center; font-size:1em; color:#888; margin-bottom:24px;"></div>
         <div id="imagesGrid" class="images-grid"></div>
-        <button id="saveBtn" class="save-btn">Save Order</button>
+        <div style="display: flex; justify-content: center; gap: 16px; margin-top: 24px;">
+            <button id="saveBtn" class="save-btn">Save Order</button>
+            <button id="deleteAllBtn" class="save-btn" style="background: #d32f2f;" onclick="deleteAllImages()">🗑️ Delete All Images</button>
+        </div>
         <div id="statusMsg" style="text-align:center; margin-top:16px; color:#388e3c;"></div>
     </div>
     <script>
@@ -268,6 +271,65 @@
         
         setTimeout(() => { document.getElementById('statusMsg').textContent = ''; }, 3000);
     };
+
+    // Delete all images function
+    async function deleteAllImages() {
+        if (images.length === 0) {
+            alert('No images to delete.');
+            return;
+        }
+
+        const confirmMessage = `Are you sure you want to delete ALL ${images.length} images?\n\nThis action cannot be undone.`;
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+
+        const statusMsg = document.getElementById('statusMsg');
+        statusMsg.textContent = 'Deleting all images...';
+        statusMsg.style.color = '#ff9800';
+
+        try {
+            // Delete from Firebase Storage first
+            const storage = firebase.storage();
+            const deletePromises = images.map(async (img) => {
+                try {
+                    // Extract file path from Firebase Storage URL
+                    if (img.url.includes('firebasestorage.googleapis.com')) {
+                        const urlParts = img.url.split('/o/')[1];
+                        const filePath = decodeURIComponent(urlParts.split('?')[0]);
+                        const fileRef = storage.ref(filePath);
+                        await fileRef.delete();
+                        console.log('Deleted from storage:', filePath);
+                    }
+                } catch (error) {
+                    console.warn('Could not delete from storage:', img.url, error);
+                }
+            });
+
+            await Promise.all(deletePromises);
+
+            // Clear images array
+            images = [];
+            
+            // Update Firestore to remove all images
+            const updatePayload = { images: [] };
+            if (propertyNumericId !== null) updatePayload.id = propertyNumericId;
+            await db.collection('properties').doc(propertyDocId).update(updatePayload);
+
+            // Re-render the grid (will be empty)
+            renderImages();
+
+            statusMsg.textContent = `✅ All ${images.length} images deleted successfully!`;
+            statusMsg.style.color = '#388e3c';
+
+        } catch (error) {
+            console.error('Error deleting images:', error);
+            statusMsg.textContent = '❌ Error deleting images. Please try again.';
+            statusMsg.style.color = '#d32f2f';
+        }
+
+        setTimeout(() => { statusMsg.textContent = ''; }, 5000);
+    }
 
     // loadPropertyImages is now called inside the onAuthStateChanged listener
     </script>
