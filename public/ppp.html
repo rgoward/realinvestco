@@ -1,0 +1,569 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Perfect Property Profile - Real InvestCo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Arial', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1A237E 0%, #3F51B5 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            font-weight: 300;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .form-container {
+            padding: 40px;
+        }
+
+        .form-section {
+            margin-bottom: 30px;
+        }
+
+        .form-section h3 {
+            color: #1A237E;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+            border-bottom: 2px solid #E8EAF6;
+            padding-bottom: 10px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .form-group {
+            flex: 1;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #E0E0E0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #1A237E;
+            box-shadow: 0 0 0 3px rgba(26, 35, 126, 0.1);
+        }
+
+        .form-group.required label::after {
+            content: " *";
+            color: #E53E3E;
+        }
+
+        .lookup-section {
+            background: #F7FAFC;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border-left: 4px solid #1A237E;
+        }
+
+        .lookup-section h4 {
+            color: #1A237E;
+            margin-bottom: 15px;
+        }
+
+        .lookup-section p {
+            color: #666;
+            margin-bottom: 15px;
+            font-size: 0.9em;
+        }
+
+        .lookup-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: #1A237E;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0F1A5C;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #E2E8F0;
+            color: #4A5568;
+        }
+
+        .btn-secondary:hover {
+            background: #CBD5E0;
+        }
+
+        .btn-success {
+            background: #38A169;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #2F855A;
+        }
+
+        .contact-info {
+            background: #E6FFFA;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            border-left: 4px solid #38A169;
+        }
+
+        .contact-info h4 {
+            color: #2D3748;
+            margin-bottom: 10px;
+        }
+
+        .contact-info p {
+            color: #4A5568;
+            margin: 5px 0;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .success-message {
+            background: #C6F6D5;
+            color: #22543D;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 1px solid #9AE6B4;
+        }
+
+        .error-message {
+            background: #FED7D7;
+            color: #742A2A;
+            padding: 20px;
+            border-radius: 8px;
+            text-align: center;
+            margin-bottom: 20px;
+            border: 1px solid #FEB2B2;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #666;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                flex-direction: column;
+                gap: 0;
+            }
+            
+            .lookup-buttons {
+                flex-direction: column;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .form-container {
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Perfect Property Profile</h1>
+            <p>Help us find the perfect investment property for you</p>
+        </div>
+
+        <div class="form-container">
+            <!-- Contact Lookup Section -->
+            <div class="lookup-section" id="lookupSection">
+                <h4>🔍 Find Your Contact Information</h4>
+                <p>Enter your email or phone number to load your existing contact information and update your property preferences.</p>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="lookupEmail">Email Address</label>
+                        <input type="email" id="lookupEmail" placeholder="your@email.com">
+                    </div>
+                    <div class="form-group">
+                        <label for="lookupPhone">Phone Number</label>
+                        <input type="tel" id="lookupPhone" placeholder="(555) 123-4567">
+                    </div>
+                </div>
+                
+                <div class="lookup-buttons">
+                    <button class="btn btn-primary" onclick="lookupContact()">Find My Contact</button>
+                </div>
+            </div>
+
+            <!-- Contact Info Display -->
+            <div class="contact-info hidden" id="contactInfo">
+                <h4>✅ Contact Found</h4>
+                <p><strong>Name:</strong> <span id="contactName"></span></p>
+                <p><strong>Email:</strong> <span id="contactEmail"></span></p>
+                <p><strong>Phone:</strong> <span id="contactPhone"></span></p>
+            </div>
+
+            <!-- Success/Error Messages -->
+            <div class="success-message hidden" id="successMessage">
+                <h4>✅ Perfect Property Profile Updated!</h4>
+                <p>Thank you for providing your investment criteria. We'll use this information to find properties that match your preferences.</p>
+            </div>
+
+            <div class="error-message hidden" id="errorMessage">
+                <h4>❌ Error</h4>
+                <p id="errorText">Something went wrong. Please try again.</p>
+            </div>
+
+            <!-- PPP Form -->
+            <form id="pppForm" class="hidden">
+                <div class="form-section">
+                    <h3>🏠 Property Preferences</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group required">
+                            <label for="bedrooms">Bedrooms</label>
+                            <select id="bedrooms" name="bedrooms" required>
+                                <option value="">Select...</option>
+                                <option value="1">1</option>
+                                <option value="2">2</option>
+                                <option value="3">3</option>
+                                <option value="4">4</option>
+                                <option value="5">5+</option>
+                            </select>
+                        </div>
+                        <div class="form-group required">
+                            <label for="bathrooms">Bathrooms</label>
+                            <select id="bathrooms" name="bathrooms" required>
+                                <option value="">Select...</option>
+                                <option value="1">1</option>
+                                <option value="1.5">1.5</option>
+                                <option value="2">2</option>
+                                <option value="2.5">2.5</option>
+                                <option value="3">3</option>
+                                <option value="3.5">3.5</option>
+                                <option value="4">4+</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group required">
+                            <label for="squareFootageFrom">Square Footage From</label>
+                            <input type="number" id="squareFootageFrom" name="squareFootageFrom" placeholder="e.g., 1000" required>
+                        </div>
+                        <div class="form-group required">
+                            <label for="squareFootageTo">Square Footage To</label>
+                            <input type="number" id="squareFootageTo" name="squareFootageTo" placeholder="e.g., 1500" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group required">
+                            <label for="lotSizeFrom">Lot Size From (sq ft)</label>
+                            <input type="number" id="lotSizeFrom" name="lotSizeFrom" placeholder="e.g., 5000" required>
+                        </div>
+                        <div class="form-group required">
+                            <label for="lotSizeTo">Lot Size To (sq ft)</label>
+                            <input type="number" id="lotSizeTo" name="lotSizeTo" placeholder="e.g., 8000" required>
+                        </div>
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group required">
+                            <label for="county">County</label>
+                            <input type="text" id="county" name="county" placeholder="e.g., Maricopa County" required>
+                        </div>
+                        <div class="form-group required">
+                            <label for="city">City</label>
+                            <input type="text" id="city" name="city" placeholder="e.g., Phoenix" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>💰 Investment Criteria</h3>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="wholesalePriceFrom">Wholesale Cost Price From</label>
+                            <input type="number" id="wholesalePriceFrom" name="wholesalePriceFrom" placeholder="e.g., 150000" style="width: 100%; padding: 12px; border: 2px solid #E0E0E0; border-radius: 8px; font-size: 16px;">
+                        </div>
+                        <div class="form-group">
+                            <label for="wholesalePriceTo">Wholesale Cost Price To</label>
+                            <input type="number" id="wholesalePriceTo" name="wholesalePriceTo" placeholder="e.g., 400000" style="width: 100%; padding: 12px; border: 2px solid #E0E0E0; border-radius: 8px; font-size: 16px;">
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="propertyTypes">Property Types (check all that apply)</label>
+                        <div style="margin-top: 10px;">
+                            <label style="display: inline-block; margin-right: 20px; font-weight: normal;">
+                                <input type="checkbox" name="propertyTypes" value="single-family"> Single Family
+                            </label>
+                            <label style="display: inline-block; margin-right: 20px; font-weight: normal;">
+                                <input type="checkbox" name="propertyTypes" value="condo"> Condo
+                            </label>
+                            <label style="display: inline-block; margin-right: 20px; font-weight: normal;">
+                                <input type="checkbox" name="propertyTypes" value="townhouse"> Townhouse
+                            </label>
+                            <label style="display: inline-block; font-weight: normal;">
+                                <input type="checkbox" name="propertyTypes" value="multi-family"> Multi-Family
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h3>📝 Additional Information</h3>
+                    
+                    <div class="form-group">
+                        <label for="investmentGoals">Investment Goals</label>
+                        <textarea id="investmentGoals" name="investmentGoals" rows="4" placeholder="Tell us about your investment strategy, timeline, and any specific requirements..."></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="additionalNotes">Additional Notes</label>
+                        <textarea id="additionalNotes" name="additionalNotes" rows="3" placeholder="Any other preferences or requirements..."></textarea>
+                    </div>
+                </div>
+
+                <div style="text-align: center; margin-top: 30px;">
+                    <button type="submit" class="btn btn-success" style="padding: 15px 40px; font-size: 18px;">
+                        Save Perfect Property Profile
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.0.0/firebase-firestore-compat.js"></script>
+    
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyBvQZvQZvQZvQZvQZvQZvQZvQZvQZvQZvQ",
+            authDomain: "realinvestco-web.firebaseapp.com",
+            projectId: "realinvestco-web",
+            storageBucket: "realinvestco-web.appspot.com",
+            messagingSenderId: "123456789",
+            appId: "1:123456789:web:abcdef123456789"
+        };
+
+        // Initialize Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+
+        let currentContact = null;
+
+        // Lookup contact by email or phone
+        async function lookupContact() {
+            const email = document.getElementById('lookupEmail').value.trim();
+            const phone = document.getElementById('lookupPhone').value.trim();
+
+            if (!email && !phone) {
+                showError('Please enter either an email or phone number.');
+                return;
+            }
+
+            showLoading();
+
+            try {
+                let query = db.collection('contacts');
+                
+                if (email) {
+                    query = query.where('email', '==', email);
+                } else {
+                    // Format phone number for search
+                    const formattedPhone = phone.replace(/\D/g, '');
+                    query = query.where('cellPhone', '==', formattedPhone);
+                }
+
+                const snapshot = await query.get();
+                
+                if (snapshot.empty) {
+                    showError('No contact found with that email or phone number. Please check your information and try again.');
+                    return;
+                }
+
+                const contactDoc = snapshot.docs[0];
+                currentContact = {
+                    id: contactDoc.id,
+                    ...contactDoc.data()
+                };
+
+                displayContactInfo();
+                showForm();
+
+            } catch (error) {
+                console.error('Error looking up contact:', error);
+                showError('Error looking up contact. Please try again.');
+            }
+        }
+
+        // Skip lookup and show form for new contacts
+        function skipLookup() {
+            currentContact = null;
+            showForm();
+        }
+
+        // Display found contact information
+        function displayContactInfo() {
+            document.getElementById('contactName').textContent = currentContact.name || 'N/A';
+            document.getElementById('contactEmail').textContent = currentContact.email || 'N/A';
+            document.getElementById('contactPhone').textContent = currentContact.cellPhone || currentContact.landline || 'N/A';
+            document.getElementById('contactInfo').classList.remove('hidden');
+        }
+
+        // Show the PPP form
+        function showForm() {
+            document.getElementById('lookupSection').classList.add('hidden');
+            document.getElementById('pppForm').classList.remove('hidden');
+        }
+
+        // Show loading state
+        function showLoading() {
+            // You can add a loading spinner here
+        }
+
+        // Show error message
+        function showError(message) {
+            document.getElementById('errorText').textContent = message;
+            document.getElementById('errorMessage').classList.remove('hidden');
+            setTimeout(() => {
+                document.getElementById('errorMessage').classList.add('hidden');
+            }, 5000);
+        }
+
+        // Show success message
+        function showSuccess() {
+            document.getElementById('successMessage').classList.remove('hidden');
+            document.getElementById('pppForm').classList.add('hidden');
+        }
+
+        // Handle form submission
+        document.getElementById('pppForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const formData = new FormData(e.target);
+            const pppData = {
+                bedrooms: formData.get('bedrooms'),
+                bathrooms: formData.get('bathrooms'),
+                squareFootageFrom: formData.get('squareFootageFrom') ? parseInt(formData.get('squareFootageFrom')) : null,
+                squareFootageTo: formData.get('squareFootageTo') ? parseInt(formData.get('squareFootageTo')) : null,
+                lotSizeFrom: formData.get('lotSizeFrom') ? parseInt(formData.get('lotSizeFrom')) : null,
+                lotSizeTo: formData.get('lotSizeTo') ? parseInt(formData.get('lotSizeTo')) : null,
+                county: formData.get('county'),
+                city: formData.get('city'),
+                wholesalePriceFrom: formData.get('wholesalePriceFrom') ? parseInt(formData.get('wholesalePriceFrom')) : null,
+                wholesalePriceTo: formData.get('wholesalePriceTo') ? parseInt(formData.get('wholesalePriceTo')) : null,
+                propertyTypes: formData.getAll('propertyTypes'),
+                investmentGoals: formData.get('investmentGoals'),
+                additionalNotes: formData.get('additionalNotes'),
+                timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                source: 'ppp_form'
+            };
+
+            try {
+                // Use Firebase function to update PPP profile
+                const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/updateContactPPP', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        contactId: currentContact ? currentContact.id : null,
+                        email: currentContact ? currentContact.email : document.getElementById('lookupEmail').value.trim(),
+                        phone: currentContact ? (currentContact.cellPhone || currentContact.landline) : document.getElementById('lookupPhone').value.trim(),
+                        pppData: pppData
+                    })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    console.log('PPP profile updated:', result);
+                    showSuccess();
+                } else {
+                    const errorData = await response.json();
+                    throw new Error(errorData.error || 'Failed to update profile');
+                }
+
+            } catch (error) {
+                console.error('Error saving PPP profile:', error);
+                showError('Error saving your profile: ' + error.message);
+            }
+        });
+    </script>
+</body>
+</html>
