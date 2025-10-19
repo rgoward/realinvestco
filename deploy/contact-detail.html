@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Profile - Real InvestCo Admin</title>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            line-height: 1.6;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #1A237E 0%, #283593 100%);
+            color: white;
+            padding: 20px 0;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .back-link {
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 6px;
+            transition: background 0.3s;
+        }
+        
+        .back-link:hover {
+            background: rgba(255,255,255,0.2);
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        
+        .profile-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+            border: 1px solid #e1e8ed;
+        }
+        
+        .card h3 {
+            color: #1A237E;
+            margin-bottom: 20px;
+            font-size: 1.4em;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        
+        .info-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .info-item {
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #1A237E;
+        }
+        
+        .info-label {
+            font-weight: 600;
+            color: #666;
+            font-size: 0.9em;
+            margin-bottom: 4px;
+        }
+        
+        .info-value {
+            color: #333;
+            font-size: 1em;
+        }
+        
+        .communication-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            flex-wrap: wrap;
+        }
+        
+        .btn {
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-email { background: #007bff; color: white; }
+        .btn-sms { background: #28a745; color: white; }
+        .btn-mail { background: #6f42c1; color: white; }
+        .btn-edit { background: #ffc107; color: #333; }
+        .btn-delete { background: #dc3545; color: white; }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-group input, .form-group select, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e1e8ed;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+        
+        .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+            outline: none;
+            border-color: #1A237E;
+        }
+        
+        .address-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        
+        .address-grid .full-width {
+            grid-column: 1 / -1;
+        }
+        
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        
+        .status-active { background: #d4edda; color: #155724; }
+        .status-inactive { background: #f8d7da; color: #721c24; }
+        .status-pending { background: #fff3cd; color: #856404; }
+        
+        .interaction-item {
+            background: #f8f9fa;
+            border-left: 4px solid #1A237E;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .interaction-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+        
+        .interaction-type {
+            font-weight: 600;
+            color: #1A237E;
+        }
+        
+        .interaction-date {
+            color: #666;
+            font-size: 0.9em;
+        }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+        }
+        
+        .modal-content {
+            background: white;
+            margin: 5% auto;
+            padding: 30px;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+        
+        .close:hover {
+            color: #000;
+        }
+        
+        @media (max-width: 768px) {
+            .profile-grid {
+                grid-template-columns: 1fr;
+            }
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+            .communication-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-content">
+            <h1 id="contactName">Contact Profile</h1>
+            <a href="admin-contacts.html" class="back-link">← Back to Contacts</a>
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="profile-grid">
+            <!-- Contact Information Card -->
+            <div class="card">
+                <h3>📋 Contact Information</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Full Name</div>
+                        <div class="info-value" id="displayName">Loading...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Email Address</div>
+                        <div class="info-value" id="displayEmail">Loading...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Cell Phone</div>
+                        <div class="info-value" id="displayPhone">Loading...</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Contact Source</div>
+                        <div class="info-value">
+                            <div style="display: flex; gap: 8px; align-items: center;">
+                                <select id="sourceSelect" style="flex: 1; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                                    <option value="RIC CA Activity">RIC CA Activity</option>
+                                    <option value="Facebook">Facebook</option>
+                                    <option value="Linked In">Linked In</option>
+                                    <option value="Referral">Referral</option>
+                                    <option value="Custom">Custom</option>
+                                </select>
+                                <button onclick="saveSourceChange()" style="padding: 8px 12px; background: #1A237E; color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 12px;">Save</button>
+                            </div>
+                            <input type="text" id="customSourceInput" placeholder="Enter custom source..." style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; margin-top: 5px; display: none;">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="info-item" style="margin-top: 15px;">
+                    <div class="info-label">Mailing Address</div>
+                    <div class="info-value" id="displayAddress">Loading...</div>
+                </div>
+                
+                <div class="communication-buttons">
+                    <button class="btn btn-email" onclick="openEmailModal()">📧 Send Email</button>
+                    <button class="btn btn-sms" onclick="sendSMS()" id="smsBtn">📱 Send SMS</button>
+                    <button class="btn btn-mail" onclick="sendMail()" id="mailBtn">📬 Send Mail</button>
+                    <button class="btn btn-edit" onclick="editContact()">✏️ Edit Contact</button>
+                    <button class="btn btn-delete" onclick="deleteContact()">🗑️ Delete</button>
+                </div>
+            </div>
+
+            <!-- Perfect Property Profile Card -->
+            <div class="card" id="pppCard" style="display: none;">
+                <h3>🏠 Perfect Property Profile</h3>
+                <div class="info-grid" id="pppInfo">
+                    <!-- PPP data will be populated here -->
+                </div>
+            </div>
+
+            <!-- Communication Status Card -->
+            <div class="card">
+                <h3>📊 Communication Status</h3>
+                <div class="info-grid">
+                    <div class="info-item">
+                        <div class="info-label">Email Status</div>
+                        <div class="info-value">
+                            <span class="status-badge status-active" id="emailStatus">Active</span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">SMS Eligible</div>
+                        <div class="info-value">
+                            <span class="status-badge" id="smsStatus">Checking...</span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Mail Eligible</div>
+                        <div class="info-value">
+                            <span class="status-badge" id="mailStatus">Checking...</span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Newsletter</div>
+                        <div class="info-value">
+                            <span class="status-badge" id="newsletterStatus">Checking...</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 20px;">
+                    <div class="info-label">Last Communication</div>
+                    <div class="info-value" id="lastCommunication">Loading...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Edit Contact Card -->
+        <div class="card" id="editCard" style="display: none;">
+            <h3>✏️ Edit Contact</h3>
+            <form id="editContactForm">
+                <div class="info-grid">
+                    <div class="form-group">
+                        <label for="editName">Full Name *</label>
+                        <input type="text" id="editName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editEmail">Email Address *</label>
+                        <input type="email" id="editEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="editPhone">Cell Phone</label>
+                        <input type="tel" id="editPhone">
+                    </div>
+                    <div class="form-group">
+                        <label for="editSource">Contact Source</label>
+                        <select id="editSource">
+                            <option value="Website">Website</option>
+                            <option value="Facebook">Facebook</option>
+                            <option value="Google">Google</option>
+                            <option value="Referral">Referral</option>
+                            <option value="Direct Mail">Direct Mail</option>
+                            <option value="Cold Call">Cold Call</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <h4 style="margin: 20px 0 10px 0; color: #1A237E;">📬 Mailing Address</h4>
+                <div class="address-grid">
+                    <div class="form-group full-width">
+                        <label for="editAddressLine1">Street Address</label>
+                        <input type="text" id="editAddressLine1" placeholder="123 Main Street">
+                    </div>
+                    <div class="form-group full-width">
+                        <label for="editAddressLine2">Apt/Suite/Unit (Optional)</label>
+                        <input type="text" id="editAddressLine2" placeholder="Apt 4B">
+                    </div>
+                    <div class="form-group">
+                        <label for="editCity">City</label>
+                        <input type="text" id="editCity" placeholder="Phoenix">
+                    </div>
+                    <div class="form-group">
+                        <label for="editState">State</label>
+                        <input type="text" id="editState" placeholder="AZ">
+                    </div>
+                    <div class="form-group">
+                        <label for="editZip">ZIP Code</label>
+                        <input type="text" id="editZip" placeholder="85001">
+                    </div>
+                    <div class="form-group">
+                        <label for="editCountry">Country</label>
+                        <input type="text" id="editCountry" value="US">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="editNotes">Notes</label>
+                    <textarea id="editNotes" rows="4" placeholder="Add notes about this contact..."></textarea>
+                </div>
+                
+                <div class="communication-buttons">
+                    <button type="submit" class="btn btn-email">💾 Save Changes</button>
+                    <button type="button" class="btn btn-delete" onclick="cancelEdit()">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Interaction History Card -->
+        <div class="card">
+            <h3>📈 Interaction History</h3>
+            <div id="interactionHistory">
+                <p>Loading interaction history...</p>
+            </div>
+            
+            <div style="margin-top: 20px;">
+                <h4>Add New Interaction</h4>
+                <form id="addInteractionForm">
+                    <div class="form-group">
+                        <label for="interactionType">Interaction Type</label>
+                        <select id="interactionType" required>
+                            <option value="phone_call">Phone Call</option>
+                            <option value="email_sent">Email Sent</option>
+                            <option value="sms_sent">SMS Sent</option>
+                            <option value="mail_sent">Mail Sent</option>
+                            <option value="meeting">Meeting</option>
+                            <option value="note">Note</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="interactionNotes">Notes</label>
+                        <textarea id="interactionNotes" rows="3" placeholder="Enter details about this interaction..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn btn-email">📝 Add Interaction</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Send Email Modal -->
+    <div id="emailModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEmailModal()">&times;</span>
+            <h3>📧 Send Email</h3>
+            <form id="emailForm">
+                <div class="form-group">
+                    <label for="emailTemplate">Email Template</label>
+                    <select id="emailTemplate" onchange="loadEmailTemplate()">
+                        <option value="">Select Brevo template...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="emailSubject">Subject *</label>
+                    <input type="text" id="emailSubject" required>
+                </div>
+                <!-- Message field removed - using Brevo template content -->
+                <div class="communication-buttons">
+                    <button type="submit" class="btn btn-email">📤 Send Email</button>
+                    <button type="button" class="btn btn-delete" onclick="closeEmailModal()">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Send SMS Modal -->
+    <div id="smsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeSmsModal()">&times;</span>
+            <h3>📱 Send SMS</h3>
+            <form id="smsForm">
+                <div class="form-group">
+                    <label for="smsTemplate">SMS Template</label>
+                    <select id="smsTemplate" onchange="loadSmsTemplate()">
+                        <option value="">Select SMS template...</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="smsMessage">Message *</label>
+                    <textarea id="smsMessage" rows="4" maxlength="160" required placeholder="Hi {{name}}, ..."></textarea>
+                    <div style="text-align: right; font-size: 0.8em; color: #666;" id="smsCharCount">0/160 characters</div>
+                </div>
+                <div class="communication-buttons">
+                    <button type="submit" class="btn btn-sms">📱 Send SMS</button>
+                    <button type="button" class="btn btn-delete" onclick="closeSmsModal()">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Send Mail Modal -->
+    <div id="mailModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeMailModal()">&times;</span>
+            <h3>📬 Send Direct Mail</h3>
+            <form id="mailForm">
+                <div class="form-group">
+                    <label for="mailType">Mail Type</label>
+                    <select id="mailType" required onchange="updateMailForm()">
+                        <option value="postcard">Postcard (~$0.45)</option>
+                        <option value="letter">Letter (~$0.85)</option>
+                    </select>
+                </div>
+                
+                <!-- Postcard Template Selection -->
+                <div id="postcardTemplates" class="form-group">
+                    <label for="postcardTemplateSet">Postcard Template Set</label>
+                    <select id="postcardTemplateSet" onchange="loadPostcardTemplates()">
+                        <option value="">Select template set...</option>
+                    </select>
+                </div>
+                
+                <div id="postcardTemplateDetails" style="display: none;">
+                    <div class="form-group">
+                        <label for="postcardSize">Postcard Size</label>
+                        <select id="postcardSize" required>
+                            <option value="6x4">6x4 (Standard)</option>
+                            <option value="9x6">9x6 (Large)</option>
+                            <option value="11x6">11x6 (Extra Large)</option>
+                        </select>
+                    </div>
+                    <!-- Hidden fields for front/back templates (populated by template pair selection) -->
+                    <input type="hidden" id="frontTemplate" required>
+                    <input type="hidden" id="backTemplate" required>
+                </div>
+                
+                <!-- Letter Template Selection -->
+                <div id="letterTemplates" class="form-group" style="display: none;">
+                    <label for="letterTemplate">Letter Template</label>
+                    <select id="letterTemplate">
+                        <option value="">Select letter template...</option>
+                    </select>
+                </div>
+                
+                <div class="info-item">
+                    <div class="info-label">Recipient Address</div>
+                    <div class="info-value" id="mailRecipientAddress">Address will be shown here</div>
+                </div>
+                <div class="communication-buttons">
+                    <button type="submit" class="btn btn-mail">📬 Send Mail</button>
+                    <button type="button" class="btn btn-delete" onclick="closeMailModal()">❌ Cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDXifeppD7kBgpgwu74Aa-5h6t_4ieFwq0",
+            authDomain: "realinvestco-web.firebaseapp.com",
+            projectId: "realinvestco-web",
+            storageBucket: "realinvestco-web.firebasestorage.app",
+            messagingSenderId: "1021426656860",
+            appId: "1:1021426656860:web:1a1f9cb16b3f0a2158a899",
+            measurementId: "G-X30NR9MZGP"
+        };
+
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // Global variables
+        let currentContact = null;
+        let currentContactId = null;
+        let currentCollection = null;
+
+        // Authentication check
+        let authInitialized = false;
+        auth.onAuthStateChanged(user => {
+            if (user && !authInitialized) {
+                authInitialized = true;
+                console.log('User authenticated:', user.email);
+                loadContactProfile();
+                loadEmailTemplates();
+                loadSmsTemplates();
+                loadMailTemplates();
+            } else if (!user) {
+                console.log('No user authenticated, redirecting to admin panel');
+                window.location.href = 'admin-secret.html';
+            }
+        });
+
+        // Load contact profile from URL parameters
+        async function loadContactProfile() {
+            const urlParams = new URLSearchParams(window.location.search);
+            currentContactId = urlParams.get('id');
+            currentCollection = urlParams.get('collection');
+            if (!currentContactId) {
+                alert('Invalid contact parameters');
+                window.location.href = 'admin-contacts.html';
+                return;
+            }
+
+            // Always use 'contacts' collection since we unified all contacts
+            currentCollection = 'contacts';
+
+            try {
+                console.log('Loading contact:', currentContactId, 'from collection:', currentCollection);
+                const doc = await db.collection(currentCollection).doc(currentContactId).get();
+                if (!doc.exists) {
+                    alert('Contact not found');
+                    window.location.href = 'admin-contacts.html';
+                    return;
+                }
+
+                currentContact = doc.data();
+                currentContact.id = doc.id; // Ensure document ID is included
+                displayContactInfo();
+                loadInteractionHistory();
+
+            } catch (error) {
+                console.error('Error loading contact:', error);
+                alert('Error loading contact');
+            }
+        }
+
+        // Display contact information
+        function displayContactInfo() {
+            const contact = currentContact;
+            
+            // Update header
+            document.getElementById('contactName').textContent = contact.name || contact.fullName || 'Contact Profile';
+            
+            // Update info fields
+            document.getElementById('displayName').textContent = contact.name || contact.fullName || 'Not provided';
+            document.getElementById('displayEmail').textContent = contact.email || 'Not provided';
+            document.getElementById('displayPhone').textContent = contact.cellPhone || contact.phone || 'Not provided';
+            // Set source dropdown
+            const sourceSelect = document.getElementById('sourceSelect');
+            const customSourceInput = document.getElementById('customSourceInput');
+            const currentSource = contact.contactSource || contact.source || 'Unknown';
+            
+            // Check if current source matches one of the predefined options
+            const predefinedSources = ['RIC CA Activity', 'Facebook', 'Linked In', 'Referral'];
+            if (predefinedSources.includes(currentSource)) {
+                sourceSelect.value = currentSource;
+                customSourceInput.style.display = 'none';
+            } else {
+                sourceSelect.value = 'Custom';
+                customSourceInput.value = currentSource;
+                customSourceInput.style.display = 'block';
+            }
+            
+            // Address
+            const hasAddress = contact.address_line1 && contact.address_city && contact.address_state && contact.address_zip;
+            if (hasAddress) {
+                document.getElementById('displayAddress').innerHTML = `
+                    ${contact.address_line1}${contact.address_line2 ? '<br>' + contact.address_line2 : ''}<br>
+                    ${contact.address_city}, ${contact.address_state} ${contact.address_zip}
+                `;
+            } else {
+                document.getElementById('displayAddress').textContent = 'No mailing address provided';
+            }
+            
+            // Display PPP data if available
+            displayPPPData(contact);
+            
+            // Update communication status
+            updateCommunicationStatus();
+        }
+
+        // Handle source dropdown change
+        function setupSourceDropdown() {
+            const sourceSelect = document.getElementById('sourceSelect');
+            const customSourceInput = document.getElementById('customSourceInput');
+            
+            sourceSelect.addEventListener('change', function() {
+                if (this.value === 'Custom') {
+                    customSourceInput.style.display = 'block';
+                    customSourceInput.focus();
+                } else {
+                    customSourceInput.style.display = 'none';
+                    customSourceInput.value = '';
+                }
+            });
+        }
+
+        // Save source change
+        async function saveSourceChange() {
+            const sourceSelect = document.getElementById('sourceSelect');
+            const customSourceInput = document.getElementById('customSourceInput');
+            
+            let newSource;
+            if (sourceSelect.value === 'Custom') {
+                newSource = customSourceInput.value.trim();
+                if (!newSource) {
+                    alert('Please enter a custom source value.');
+                    return;
+                }
+            } else {
+                newSource = sourceSelect.value;
+            }
+            
+            try {
+                // Update the contact in Firebase
+                await db.collection('contacts').doc(currentContactId).update({
+                    source: newSource,
+                    lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
+                });
+                
+                // Update the current contact object
+                currentContact.source = newSource;
+                
+                alert('Source updated successfully!');
+            } catch (error) {
+                console.error('Error updating source:', error);
+                alert('Failed to update source. Please try again.');
+            }
+        }
+
+        // Display PPP data if available
+        function displayPPPData(contact) {
+            const pppCard = document.getElementById('pppCard');
+            const pppInfo = document.getElementById('pppInfo');
+            
+            if (contact.pppProfile && contact.pppCompleted) {
+                const ppp = contact.pppProfile;
+                pppInfo.innerHTML = `
+                    <div class="info-item">
+                        <div class="info-label">Bedrooms</div>
+                        <div class="info-value">${ppp.bedrooms || 'Not specified'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Bathrooms</div>
+                        <div class="info-value">${ppp.bathrooms || 'Not specified'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Square Footage</div>
+                        <div class="info-value">${ppp.squareFootageFrom ? `${ppp.squareFootageFrom} - ${ppp.squareFootageTo || 'No limit'}` : 'Not specified'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Lot Size (sq ft)</div>
+                        <div class="info-value">${ppp.lotSizeFrom ? `${ppp.lotSizeFrom} - ${ppp.lotSizeTo || 'No limit'}` : 'Not specified'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Lot Size (acres)</div>
+                        <div class="info-value">${ppp.lotAcreFrom ? `${ppp.lotAcreFrom} - ${ppp.lotAcreTo || 'No limit'}` : 'Not specified'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">County</div>
+                        <div class="info-value">${ppp.county || 'Not specified'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">City</div>
+                        <div class="info-value">${ppp.city || 'Not specified'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Price Range</div>
+                        <div class="info-value">${ppp.wholesalePriceFrom ? `$${ppp.wholesalePriceFrom.toLocaleString()} - $${(ppp.wholesalePriceTo || 'No limit').toLocaleString()}` : 'Not specified'}</div>
+                    </div>
+                    <div class="info-item">
+                        <div class="info-label">Property Types</div>
+                        <div class="info-value">${ppp.propertyTypes && ppp.propertyTypes.length > 0 ? ppp.propertyTypes.join(', ') : 'Not specified'}</div>
+                    </div>
+                    <div class="info-item" style="grid-column: 1 / -1;">
+                        <div class="info-label">Investment Goals</div>
+                        <div class="info-value">${ppp.investmentGoals || 'Not specified'}</div>
+                    </div>
+                `;
+                pppCard.style.display = 'block';
+            } else {
+                pppCard.style.display = 'none';
+            }
+        }
+
+        // Update communication status indicators
+        function updateCommunicationStatus() {
+            const contact = currentContact;
+            
+            // SMS Status
+            const smsStatus = document.getElementById('smsStatus');
+            const smsBtn = document.getElementById('smsBtn');
+            if (contact.cellPhone || contact.phone) {
+                smsStatus.className = 'status-badge status-active';
+                smsStatus.textContent = 'Ready';
+                smsBtn.disabled = false;
+            } else {
+                smsStatus.className = 'status-badge status-inactive';
+                smsStatus.textContent = 'No Phone';
+                smsBtn.disabled = true;
+            }
+            
+            // Mail Status
+            const mailStatus = document.getElementById('mailStatus');
+            const mailBtn = document.getElementById('mailBtn');
+            const hasAddress = contact.address_line1 && contact.address_city && contact.address_state && contact.address_zip;
+            if (hasAddress) {
+                mailStatus.className = 'status-badge status-active';
+                mailStatus.textContent = 'Ready';
+                mailBtn.disabled = false;
+            } else {
+                mailStatus.className = 'status-badge status-inactive';
+                mailStatus.textContent = 'No Address';
+                mailBtn.disabled = true;
+            }
+            
+            // Newsletter Status
+            const newsletterStatus = document.getElementById('newsletterStatus');
+            if (contact.newsletter) {
+                newsletterStatus.className = 'status-badge status-active';
+                newsletterStatus.textContent = 'Subscribed';
+            } else {
+                newsletterStatus.className = 'status-badge status-inactive';
+                newsletterStatus.textContent = 'Not Subscribed';
+            }
+        }
+
+        // Load interaction history
+        async function loadInteractionHistory() {
+            try {
+                const interactions = [];
+                
+                // Check all collections for this contact's email
+                const collections = ['generalInquiries', 'propertyInquiries', 'contacts'];
+                for (const col of collections) {
+                    const snapshot = await db.collection(col).where('email', '==', currentContact.email).get();
+                    snapshot.forEach(doc => {
+                        const data = doc.data();
+                        interactions.push({
+                            id: doc.id,
+                            timestamp: data.timestamp || data.dateAdded,
+                            type: col === 'contacts' ? 'Admin Contact' : 
+                                  col === 'propertyInquiries' ? 'Property Inquiry' : 'General Inquiry',
+                            message: data.message || data.notes || data.contactNotes || 'No message',
+                            propertyTitle: data.propertyTitle || data.propertyId || null,
+                            source: data.contactSource || data.source || 'Unknown',
+                            collection: col
+                        });
+                    });
+                }
+
+                // Sort by timestamp (newest first)
+                interactions.sort((a, b) => {
+                    const timeA = a.timestamp?.toMillis ? a.timestamp.toMillis() : new Date(a.timestamp).getTime();
+                    const timeB = b.timestamp?.toMillis ? b.timestamp.toMillis() : new Date(b.timestamp).getTime();
+                    return timeB - timeA;
+                });
+
+                // Display interactions
+                const historyContainer = document.getElementById('interactionHistory');
+                if (interactions.length === 0) {
+                    historyContainer.innerHTML = '<p>No interaction history found.</p>';
+                } else {
+                    historyContainer.innerHTML = interactions.map(interaction => `
+                        <div class="interaction-item">
+                            <div class="interaction-header">
+                                <span class="interaction-type">${interaction.type}</span>
+                                <span class="interaction-date">${new Date(interaction.timestamp?.toMillis ? interaction.timestamp.toMillis() : interaction.timestamp).toLocaleString()}</span>
+                            </div>
+                            ${interaction.propertyTitle ? `<p><strong>Property:</strong> ${interaction.propertyTitle}</p>` : ''}
+                            <p><strong>Source:</strong> ${interaction.source}</p>
+                            <p><strong>Message:</strong> ${interaction.message}</p>
+                        </div>
+                    `).join('');
+                }
+
+                // Update last communication
+                if (interactions.length > 0) {
+                    const lastInteraction = interactions[0];
+                    document.getElementById('lastCommunication').textContent = 
+                        `${lastInteraction.type} - ${new Date(lastInteraction.timestamp?.toMillis ? lastInteraction.timestamp.toMillis() : lastInteraction.timestamp).toLocaleDateString()}`;
+                } else {
+                    document.getElementById('lastCommunication').textContent = 'No recent communication';
+                }
+
+            } catch (error) {
+                console.error('Error loading interaction history:', error);
+                document.getElementById('interactionHistory').innerHTML = '<p>Error loading interaction history.</p>';
+            }
+        }
+
+        // Load email templates from Brevo
+        async function loadEmailTemplates() {
+            try {
+                const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/getBrevoTemplates');
+                if (response.ok) {
+                    const result = await response.json();
+                    const templates = result.templates || [];
+                    const select = document.getElementById('emailTemplate');
+                    
+                    // Clear existing options
+                    select.innerHTML = '<option value="">Select template...</option>';
+                    
+                    if (templates && templates.length > 0) {
+                        templates.forEach(template => {
+                            const option = document.createElement('option');
+                            option.value = template.id;
+                            option.textContent = template.name;
+                            select.appendChild(option);
+                        });
+                        console.log(`✅ Loaded ${templates.length} email templates`);
+                    } else {
+                        console.log('No email templates found');
+                    }
+                } else {
+                    console.error('Error loading email templates:', response.status);
+                }
+            } catch (error) {
+                console.error('Error loading email templates:', error);
+            }
+        }
+
+        // Load SMS templates
+        async function loadSmsTemplates() {
+            try {
+                const snapshot = await db.collection('smsTemplates').get();
+                const select = document.getElementById('smsTemplate');
+                
+                snapshot.forEach(doc => {
+                    const data = doc.data();
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = data.name;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                console.error('Error loading SMS templates:', error);
+            }
+        }
+
+        // Load PostGrid mail templates
+        async function loadMailTemplates() {
+            try {
+                // Load template pairs for postcards
+                const templatePairsSnapshot = await db.collection('templatePairs').get();
+                const postcardTemplateSet = document.getElementById('postcardTemplateSet');
+                
+                // Clear existing options
+                postcardTemplateSet.innerHTML = '<option value="">Select template set...</option>';
+                
+                // Add template pairs to dropdown
+                templatePairsSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    const option = document.createElement('option');
+                    option.value = data.name;
+                    option.textContent = data.name;
+                    option.dataset.frontId = data.frontTemplateId;
+                    option.dataset.backId = data.backTemplateId;
+                    option.dataset.defaultSize = data.defaultSize;
+                    postcardTemplateSet.appendChild(option);
+                });
+                
+                // Load individual templates for letters
+                const templatesSnapshot = await db.collection('postgridTemplates').get();
+                const letterTemplate = document.getElementById('letterTemplate');
+                
+                // Clear existing options
+                letterTemplate.innerHTML = '<option value="">Select letter template...</option>';
+                
+                templatesSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    if (data.templateType === 'letter' || data.name.toLowerCase().includes('letter')) {
+                        const option = document.createElement('option');
+                        option.value = data.postgridId;
+                        option.textContent = data.name;
+                        letterTemplate.appendChild(option);
+                    }
+                });
+                
+            } catch (error) {
+                console.error('Error loading mail templates:', error);
+            }
+        }
+
+        // Edit contact functionality
+        function editContact() {
+            const editCard = document.getElementById('editCard');
+            editCard.style.display = 'block';
+            
+            // Populate edit form with current data
+            document.getElementById('editName').value = currentContact.name || currentContact.fullName || '';
+            document.getElementById('editEmail').value = currentContact.email || '';
+            document.getElementById('editPhone').value = currentContact.cellPhone || currentContact.phone || '';
+            document.getElementById('editSource').value = currentContact.contactSource || currentContact.source || '';
+            document.getElementById('editAddressLine1').value = currentContact.address_line1 || '';
+            document.getElementById('editAddressLine2').value = currentContact.address_line2 || '';
+            document.getElementById('editCity').value = currentContact.address_city || '';
+            document.getElementById('editState').value = currentContact.address_state || '';
+            document.getElementById('editZip').value = currentContact.address_zip || '';
+            document.getElementById('editCountry').value = currentContact.address_country || 'US';
+            document.getElementById('editNotes').value = currentContact.notes || '';
+            
+            // Scroll to edit form
+            editCard.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function cancelEdit() {
+            document.getElementById('editCard').style.display = 'none';
+        }
+
+        // Communication functions
+        function openEmailModal() {
+            document.getElementById('emailModal').style.display = 'block';
+        }
+
+        function closeEmailModal() {
+            document.getElementById('emailModal').style.display = 'none';
+        }
+
+        function sendSMS() {
+            document.getElementById('smsModal').style.display = 'block';
+            updateMailRecipientAddress();
+        }
+
+        function closeSmsModal() {
+            document.getElementById('smsModal').style.display = 'none';
+        }
+
+        function sendMail() {
+            document.getElementById('mailModal').style.display = 'block';
+            updateMailRecipientAddress();
+        }
+
+        function closeMailModal() {
+            document.getElementById('mailModal').style.display = 'none';
+        }
+
+        function updateMailRecipientAddress() {
+            const addressElement = document.getElementById('mailRecipientAddress');
+            const hasAddress = currentContact.address_line1 && currentContact.address_city && currentContact.address_state && currentContact.address_zip;
+            
+            if (hasAddress) {
+                addressElement.innerHTML = `
+                    ${currentContact.name || 'Contact'}<br>
+                    ${currentContact.address_line1}${currentContact.address_line2 ? '<br>' + currentContact.address_line2 : ''}<br>
+                    ${currentContact.address_city}, ${currentContact.address_state} ${currentContact.address_zip}
+                `;
+            } else {
+                addressElement.textContent = 'No mailing address available';
+            }
+        }
+
+        // Template loading functions
+        function loadEmailTemplate() {
+            const templateId = document.getElementById('emailTemplate').value;
+            if (templateId) {
+                // Load template content from Brevo
+                // This would integrate with your existing Brevo template system
+                document.getElementById('emailSubject').value = 'Real InvestCo - Following Up';
+            }
+        }
+
+        function loadSmsTemplate() {
+            const templateId = document.getElementById('smsTemplate').value;
+            if (templateId) {
+                // Load SMS template content
+                db.collection('smsTemplates').doc(templateId).get().then(doc => {
+                    if (doc.exists) {
+                        const template = doc.data();
+                        document.getElementById('smsMessage').value = template.content;
+                        updateSmsCharCount();
+                    }
+                });
+            }
+        }
+
+        // Update mail form based on mail type selection
+        function updateMailForm() {
+            const mailType = document.getElementById('mailType').value;
+            const postcardTemplates = document.getElementById('postcardTemplates');
+            const postcardDetails = document.getElementById('postcardTemplateDetails');
+            const letterTemplates = document.getElementById('letterTemplates');
+            
+            if (mailType === 'postcard') {
+                postcardTemplates.style.display = 'block';
+                letterTemplates.style.display = 'none';
+            } else if (mailType === 'letter') {
+                postcardTemplates.style.display = 'none';
+                postcardDetails.style.display = 'none';
+                letterTemplates.style.display = 'block';
+            }
+        }
+
+        // Load postcard templates when template set is selected
+        function loadPostcardTemplates() {
+            const templateSet = document.getElementById('postcardTemplateSet');
+            const frontTemplate = document.getElementById('frontTemplate');
+            const backTemplate = document.getElementById('backTemplate');
+            const postcardSize = document.getElementById('postcardSize');
+            const postcardDetails = document.getElementById('postcardTemplateDetails');
+            
+            if (templateSet.value) {
+                const selectedOption = templateSet.options[templateSet.selectedIndex];
+                // Populate hidden fields with template IDs
+                frontTemplate.value = selectedOption.dataset.frontId;
+                backTemplate.value = selectedOption.dataset.backId;
+                // Set the size dropdown to the default size
+                postcardSize.value = selectedOption.dataset.defaultSize || '6x4';
+                postcardDetails.style.display = 'block';
+            } else {
+                // Clear hidden fields
+                frontTemplate.value = '';
+                backTemplate.value = '';
+                postcardSize.value = '6x4';
+                postcardDetails.style.display = 'none';
+            }
+        }
+
+        // Get PostGrid contact ID from synced contact
+        async function getPostGridContactId() {
+            try {
+                // Check if contact has PostGrid contact ID stored
+                if (currentContact.postgridContactId) {
+                    return currentContact.postgridContactId;
+                }
+                
+                // Look up in postgridContacts collection
+                const postgridContactQuery = await db.collection('postgridContacts')
+                    .where('firebaseId', '==', currentContactId)
+                    .limit(1)
+                    .get();
+                
+                if (!postgridContactQuery.empty) {
+                    const postgridContact = postgridContactQuery.docs[0].data();
+                    return postgridContact.postgridId;
+                }
+                
+                // If not found, try to sync the contact
+                console.log('Contact not synced to PostGrid, attempting to sync...');
+                
+                // Show loading message
+                const sendButton = document.querySelector('#mailForm button[type="submit"]');
+                const originalText = sendButton.textContent;
+                sendButton.textContent = '🔄 Syncing Contact...';
+                sendButton.disabled = true;
+                
+                try {
+                    const syncResponse = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/syncContactToPostGrid', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ contactData: currentContact })
+                    });
+                    
+                    if (syncResponse.ok) {
+                        const syncResult = await syncResponse.json();
+                        console.log('Sync result:', syncResult);
+                        
+                        if (syncResult.success && syncResult.postgridContactId) {
+                            // Update the current contact with the new PostGrid ID
+                            currentContact.postgridContactId = syncResult.postgridContactId;
+                            
+                            // Update the contact in Firebase
+                            await db.collection('contacts').doc(currentContactId).update({
+                                postgridContactId: syncResult.postgridContactId
+                            });
+                            
+                            return syncResult.postgridContactId;
+                        } else {
+                            throw new Error(syncResult.message || 'Sync failed');
+                        }
+                    } else {
+                        const errorText = await syncResponse.text();
+                        throw new Error(`Sync failed: ${errorText}`);
+                    }
+                } finally {
+                    // Restore button
+                    sendButton.textContent = originalText;
+                    sendButton.disabled = false;
+                }
+                
+            } catch (error) {
+                console.error('Error getting PostGrid contact ID:', error);
+                alert(`Failed to sync contact to PostGrid: ${error.message}\n\nPlease try again or contact support.`);
+                throw error;
+            }
+        }
+
+        // SMS character counter
+        document.addEventListener('DOMContentLoaded', function() {
+            const smsTextarea = document.getElementById('smsMessage');
+            if (smsTextarea) {
+                smsTextarea.addEventListener('input', updateSmsCharCount);
+            }
+            
+            // Setup source dropdown
+            setupSourceDropdown();
+        });
+
+        function updateSmsCharCount() {
+            const textarea = document.getElementById('smsMessage');
+            const counter = document.getElementById('smsCharCount');
+            const count = textarea.value.length;
+            
+            counter.textContent = `${count}/160 characters`;
+            if (count > 160) {
+                counter.style.color = '#dc3545';
+            } else if (count > 140) {
+                counter.style.color = '#ffc107';
+            } else {
+                counter.style.color = '#666';
+            }
+        }
+
+        // Form submission handlers
+        document.getElementById('editContactForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const updatedData = {
+                name: document.getElementById('editName').value,
+                email: document.getElementById('editEmail').value,
+                cellPhone: document.getElementById('editPhone').value,
+                contactSource: document.getElementById('editSource').value,
+                address_line1: document.getElementById('editAddressLine1').value,
+                address_line2: document.getElementById('editAddressLine2').value,
+                address_city: document.getElementById('editCity').value,
+                address_state: document.getElementById('editState').value,
+                address_zip: document.getElementById('editZip').value,
+                address_country: document.getElementById('editCountry').value,
+                notes: document.getElementById('editNotes').value,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            };
+
+            try {
+                await db.collection(currentCollection).doc(currentContactId).update(updatedData);
+                currentContact = { ...currentContact, ...updatedData };
+                displayContactInfo();
+                cancelEdit();
+                alert('Contact updated successfully!');
+            } catch (error) {
+                console.error('Error updating contact:', error);
+                alert('Error updating contact: ' + error.message);
+            }
+        });
+
+        document.getElementById('emailForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const templateId = document.getElementById('emailTemplate').value;
+            const subject = document.getElementById('emailSubject').value;
+            
+            if (!templateId) {
+                alert('Please select an email template');
+                return;
+            }
+            
+            const emailData = {
+                toEmail: currentContact.email,
+                toName: currentContact.name || currentContact.fullName,
+                templateId: templateId,
+                subject: subject,
+                templateVariables: {
+                    NAME: currentContact.name || currentContact.fullName,
+                    FIRSTNAME: (currentContact.name || currentContact.fullName || '').split(' ')[0]
+                }
+            };
+
+            try {
+                const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/sendBrevoTemplateEmail', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(emailData)
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    alert('Email sent successfully!');
+                    closeEmailModal();
+                    addInteraction('email_sent', `Email sent using template: ${templateId}`);
+                } else {
+                    const errorData = await response.json();
+                    alert('Error sending email: ' + (errorData.error || 'Unknown error'));
+                }
+            } catch (error) {
+                console.error('Error sending email:', error);
+                alert('Error sending email: ' + error.message);
+            }
+        });
+
+        document.getElementById('smsForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const smsData = {
+                smsType: 'manual',
+                contactData: {
+                    contactId: currentContactId,
+                    name: currentContact.name || currentContact.fullName,
+                    phone: currentContact.cellPhone || currentContact.phone,
+                    email: currentContact.email
+                },
+                customMessage: document.getElementById('smsMessage').value
+            };
+
+            try {
+                const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/sendSmsWebhook', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(smsData)
+                });
+
+                if (response.ok) {
+                    alert('SMS sent successfully!');
+                    closeSmsModal();
+                    addInteraction('sms_sent', `SMS sent: ${smsData.customMessage.substring(0, 50)}...`);
+                } else {
+                    alert('Error sending SMS');
+                }
+            } catch (error) {
+                console.error('Error sending SMS:', error);
+                alert('Error sending SMS: ' + error.message);
+            }
+        });
+
+        document.getElementById('mailForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const mailType = document.getElementById('mailType').value;
+            let mailData = {};
+            
+            if (mailType === 'postcard') {
+                // Handle postcard sending
+                const frontTemplate = document.getElementById('frontTemplate').value;
+                const backTemplate = document.getElementById('backTemplate').value;
+                const postcardSize = document.getElementById('postcardSize').value;
+                
+                if (!frontTemplate || !backTemplate) {
+                    alert('Please select both front and back templates for the postcard');
+                    return;
+                }
+                
+                // Get PostGrid contact ID from synced contact
+                console.log('🔄 Getting PostGrid contact ID...');
+                const postgridContactId = await getPostGridContactId();
+                console.log('📋 PostGrid Contact ID:', postgridContactId);
+                if (!postgridContactId) {
+                    alert('Contact not synced to PostGrid. Please sync the contact first.');
+                    return;
+                }
+                
+                mailData = {
+                    contactId: postgridContactId,
+                    frontTemplateId: frontTemplate,
+                    backTemplateId: backTemplate,
+                    size: postcardSize,
+                    customData: {
+                        firstName: currentContact.name ? currentContact.name.split(' ')[0] : '',
+                        lastName: currentContact.name ? currentContact.name.split(' ').slice(1).join(' ') : '',
+                        propertyAddress: currentContact.address_line1 + ', ' + currentContact.address_city + ', ' + currentContact.address_state + ' ' + currentContact.address_zip
+                    }
+                };
+                
+                // Get API key for PostGrid from Firebase settings
+                console.log('🔍 Fetching PostGrid settings from Firebase...');
+                const settingsDoc = await db.collection('mailSettings').doc('config').get();
+                const settings = settingsDoc.exists ? settingsDoc.data() : {};
+                console.log('📋 Firebase settings:', settings);
+                
+                const environment = settings.postgridEnvironment || 'test';
+                const apiKey = environment === 'test' 
+                    ? settings.postgridTestApiKey 
+                    : settings.postgridLiveApiKey;
+                
+                console.log('🔑 Environment:', environment);
+                console.log('🔑 API Key found:', apiKey ? 'Yes (' + apiKey.substring(0, 10) + '...)' : 'No');
+                    
+                if (!apiKey) {
+                    alert(`Please configure your PostGrid ${environment} API key first in the mail automation settings.\n\nGo to Mail Automation → Settings tab to configure your API keys.\n\nCurrent settings: ${JSON.stringify(settings, null, 2)}`);
+                    return;
+                }
+
+                // Add API key to mail data
+                mailData.apiKey = apiKey;
+
+                // Use postcard function
+                try {
+                    const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/sendPostGridPostcard', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(mailData)
+                    });
+
+                    let result;
+                    const responseText = await response.text();
+                    console.log('Raw response:', responseText);
+                    
+                    try {
+                        result = JSON.parse(responseText);
+                        console.log('Postcard response:', result);
+                    } catch (jsonError) {
+                        console.error('JSON parse error:', jsonError);
+                        alert('Error parsing response: ' + responseText.substring(0, 200));
+                        return;
+                    }
+
+                    if (response.ok && result.success) {
+                        alert(`Postcard sent successfully! PostGrid ID: ${result.postgridId}\nCost: $${result.cost || '0.45'}`);
+                        closeMailModal();
+                        addInteraction('mail_sent', `Postcard sent using PostGrid (${postcardSize})`);
+                    } else {
+                        console.error('Postcard error response:', result);
+                        alert(`Error sending postcard: ${result.error || result.message || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    console.error('Error sending postcard:', error);
+                    alert('Error sending postcard: ' + error.message);
+                }
+                
+            } else if (mailType === 'letter') {
+                // Handle letter sending (existing logic)
+                const templateId = document.getElementById('letterTemplate').value;
+                
+                if (!templateId) {
+                    alert('Please select a letter template');
+                    return;
+                }
+                
+                // Get PostGrid contact ID from synced contact
+                console.log('🔄 Getting PostGrid contact ID...');
+                const postgridContactId = await getPostGridContactId();
+                console.log('📋 PostGrid Contact ID:', postgridContactId);
+                if (!postgridContactId) {
+                    alert('Contact not synced to PostGrid. Please sync the contact first.');
+                    return;
+                }
+                
+                mailData = {
+                    templateId: templateId,
+                    contactId: postgridContactId,
+                    mailType: 'letter',
+                    customData: {
+                        firstName: currentContact.name ? currentContact.name.split(' ')[0] : '',
+                        lastName: currentContact.name ? currentContact.name.split(' ').slice(1).join(' ') : ''
+                    }
+                };
+                
+                // Get API key for PostGrid from Firebase settings
+                console.log('🔍 Fetching PostGrid settings from Firebase...');
+                const settingsDoc = await db.collection('mailSettings').doc('config').get();
+                const settings = settingsDoc.exists ? settingsDoc.data() : {};
+                console.log('📋 Firebase settings:', settings);
+                
+                const environment = settings.postgridEnvironment || 'test';
+                const apiKey = environment === 'test' 
+                    ? settings.postgridTestApiKey 
+                    : settings.postgridLiveApiKey;
+                
+                console.log('🔑 Environment:', environment);
+                console.log('🔑 API Key found:', apiKey ? 'Yes (' + apiKey.substring(0, 10) + '...)' : 'No');
+                    
+                if (!apiKey) {
+                    alert(`Please configure your PostGrid ${environment} API key first in the mail automation settings.\n\nGo to Mail Automation → Settings tab to configure your API keys.\n\nCurrent settings: ${JSON.stringify(settings, null, 2)}`);
+                    return;
+                }
+
+                // Add API key to mail data
+                mailData.apiKey = apiKey;
+
+                // Use existing mail function
+                try {
+                    const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/sendPostGridMail', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(mailData)
+                    });
+
+                    const result = await response.json();
+                    console.log('Mail response:', result);
+
+                    if (response.ok && result.success) {
+                        alert(`Letter sent successfully! Cost: $${result.cost || '0.85'}`);
+                        closeMailModal();
+                        addInteraction('mail_sent', `Letter sent using PostGrid template`);
+                    } else {
+                        console.error('Mail error response:', result);
+                        alert(`Error sending letter: ${result.error || result.message || 'Unknown error'}`);
+                    }
+                } catch (error) {
+                    console.error('Error sending letter:', error);
+                    alert('Error sending letter: ' + error.message);
+                }
+            }
+        });
+
+        document.getElementById('addInteractionForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const type = document.getElementById('interactionType').value;
+            const notes = document.getElementById('interactionNotes').value;
+            
+            await addInteraction(type, notes);
+            
+            // Clear form
+            document.getElementById('interactionNotes').value = '';
+        });
+
+        // Add interaction to history
+        async function addInteraction(type, notes) {
+            try {
+                const interactionData = {
+                    contactId: currentContactId,
+                    contactEmail: currentContact.email,
+                    contactName: currentContact.name || currentContact.fullName,
+                    type: type,
+                    notes: notes,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp()
+                };
+
+                await db.collection('contactInteractions').add(interactionData);
+                loadInteractionHistory(); // Reload history
+                
+            } catch (error) {
+                console.error('Error adding interaction:', error);
+                alert('Error adding interaction: ' + error.message);
+            }
+        }
+
+        // Delete contact
+        async function deleteContact() {
+            if (confirm('Are you sure you want to delete this contact? This action cannot be undone.')) {
+                try {
+                    // Get contact data before deleting
+                    const contactDoc = await db.collection(currentCollection).doc(currentContactId).get();
+                    const contactData = contactDoc.data();
+                    
+                    // Delete from Firebase
+                    await db.collection(currentCollection).doc(currentContactId).delete();
+                    
+                    // Delete from Brevo if contact has email
+                    if (contactData && contactData.email) {
+                        try {
+                            const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/deleteContactFromBrevo', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ email: contactData.email })
+                            });
+                            if (response.ok) {
+                                console.log('✅ Contact deleted from Brevo successfully');
+                            }
+                        } catch (brevoError) {
+                            console.error('❌ Failed to delete contact from Brevo:', brevoError);
+                        }
+                    }
+                    
+                    // Delete from PostGrid if contact has postGridId
+                    if (contactData && contactData.postGridId) {
+                        try {
+                            const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/deleteContactFromPostGrid', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ postGridId: contactData.postGridId })
+                            });
+                            if (response.ok) {
+                                console.log('✅ Contact deleted from PostGrid successfully');
+                            }
+                        } catch (postGridError) {
+                            console.error('❌ Failed to delete contact from PostGrid:', postGridError);
+                        }
+                    }
+                    
+                    alert('Contact deleted successfully');
+                    window.location.href = 'admin-contacts.html';
+                } catch (error) {
+                    console.error('Error deleting contact:', error);
+                    alert('Error deleting contact: ' + error.message);
+                }
+            }
+        }
+
+        // Close modals when clicking outside
+        window.onclick = function(event) {
+            const modals = ['emailModal', 'smsModal', 'mailModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+    </script>
+</body>
+</html>
