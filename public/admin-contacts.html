@@ -304,11 +304,10 @@ Real InvestCo</textarea>
                     <div style="display: flex; justify-content: space-between; align-items: start;">
                         <div>
                             <h4>
-                                <a href="contact-detail.html?id=${contact.id}&collection=${contact.source}" 
+                                <a href="#" onclick="navigateToContact('${contact.id}', '${contact.source}'); return false;" 
                                    style="color: #007cba; text-decoration: none; cursor: pointer;"
                                    onmouseover="this.style.textDecoration='underline'"
-                                   onmouseout="this.style.textDecoration='none'"
-                                   target="_self">
+                                   onmouseout="this.style.textDecoration='none'">
                                     ${contact.name || contact.fullName || 'No Name'} ${hasAddress ? '📮' : ''}
                                 </a>
                             </h4>
@@ -1022,6 +1021,12 @@ Real InvestCo</textarea>
 
         // Navigate to Contact Detail Page
         window.viewContactHistory = function(contactId, collection) {
+            // Navigate to the contact detail page in the same window
+            window.location.href = `contact-detail.html?id=${contactId}&collection=${collection}`;
+        };
+
+        // Navigate to Contact Detail Page (for contact name clicks)
+        window.navigateToContact = function(contactId, collection) {
             // Navigate to the contact detail page in the same window
             window.location.href = `contact-detail.html?id=${contactId}&collection=${collection}`;
         };
