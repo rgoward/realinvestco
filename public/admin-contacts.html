@@ -29,7 +29,7 @@
             <h1>📋 Manage Contacts</h1>
             <p>Real InvestCo Admin Panel</p>
                 </div>
-                <a href="admin-secret.html" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">← Back to Admin</a>
+                <a href="#" onclick="navigateToAdmin(); return false;" style="background: #28a745; color: white; padding: 10px 20px; text-decoration: none; border-radius: 4px;">← Back to Admin</a>
             </div>
         </div>
 
@@ -994,6 +994,12 @@
         window.navigateToContact = function(contactId, collection) {
             // Navigate to the contact detail page in the same window
             window.location.href = `contact-detail.html?id=${contactId}&collection=${collection}`;
+        };
+
+        // Navigate to Admin Page
+        window.navigateToAdmin = function() {
+            // Navigate to the admin page in the same window
+            window.location.href = 'admin-secret.html';
         };
 
         // Contact History Modal functionality (kept for backward compatibility)
