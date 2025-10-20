@@ -539,7 +539,56 @@
             }
           }
 
-          // If not found by email or phone, check by name + address combination
+          // If not found by email or phone, check by name only (for admin-created contacts)
+          if (!isCA && formData.name) {
+            console.log('Checking by name only:', formData.name);
+            console.log('Name lookup - exact match for:', formData.name);
+            const nameQuery = await db.collection('contacts')
+              .where('name', '==', formData.name)
+              .limit(1)
+              .get();
+            console.log('Name query results:', nameQuery.empty ? 'No matches' : 'Found ' + nameQuery.docs.length + ' contact(s)');
+            
+            if (!nameQuery.empty) {
+              isCA = true;
+              existingContactId = nameQuery.docs[0].id;
+              existingContactData = nameQuery.docs[0].data();
+              console.log('Contact found by name (CA):', isCA, 'ID:', existingContactId);
+              console.log('Found contact data:', existingContactData);
+            }
+          }
+
+          // If not found by exact name match, try name variations
+          if (!isCA && formData.name) {
+            console.log('Trying name variations...');
+            const nameVariations = [
+              formData.name.trim(), // Remove extra spaces
+              formData.name.trim().toLowerCase(), // Lowercase
+              formData.name.trim().toUpperCase(), // Uppercase
+              formData.name.trim().replace(/\s+/g, ' '), // Normalize spaces
+            ];
+            
+            for (const nameFormat of nameVariations) {
+              if (nameFormat !== formData.name) {
+                console.log('Trying name format:', nameFormat);
+                const altNameQuery = await db.collection('contacts')
+                  .where('name', '==', nameFormat)
+                  .limit(1)
+                  .get();
+                
+                if (!altNameQuery.empty) {
+                  isCA = true;
+                  existingContactId = altNameQuery.docs[0].id;
+                  existingContactData = altNameQuery.docs[0].data();
+                  console.log('Contact found by name variation:', nameFormat, 'ID:', existingContactId);
+                  console.log('Found contact data:', existingContactData);
+                  break;
+                }
+              }
+            }
+          }
+
+          // If not found by name, check by name + address combination
           if (!isCA && formData.name && formData.address_line1 && formData.address_city && formData.address_zip) {
             console.log('Checking by name + address:', formData.name, formData.address_line1, formData.address_city, formData.address_zip);
             const nameAddressQuery = await db.collection('contacts')
