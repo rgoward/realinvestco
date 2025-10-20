@@ -474,10 +474,12 @@
           // Check by email first (if provided)
           if (formData.email) {
             console.log('Checking by email:', formData.email);
+            console.log('Email lookup - exact match for:', formData.email);
             const emailQuery = await db.collection('contacts')
               .where('email', '==', formData.email)
               .limit(1)
               .get();
+            console.log('Email query results:', emailQuery.empty ? 'No matches' : 'Found ' + emailQuery.docs.length + ' contact(s)');
             
             if (!emailQuery.empty) {
               isCA = true;
@@ -491,10 +493,12 @@
           // If not found by email, check by phone number (if provided)
           if (!isCA && formData.cellPhone) {
             console.log('Checking by phone:', formData.cellPhone);
+            console.log('Phone lookup - exact match for:', formData.cellPhone);
             const phoneQuery = await db.collection('contacts')
               .where('cellPhone', '==', formData.cellPhone)
               .limit(1)
               .get();
+            console.log('Phone query results:', phoneQuery.empty ? 'No matches' : 'Found ' + phoneQuery.docs.length + ' contact(s)');
             
             if (!phoneQuery.empty) {
               isCA = true;
@@ -505,6 +509,36 @@
             }
           }
           
+          // If not found by exact phone match, try different phone formats
+          if (!isCA && formData.cellPhone) {
+            console.log('Trying alternative phone formats...');
+            const phoneVariations = [
+              formData.cellPhone.replace(/\D/g, ''), // Remove all non-digits
+              formData.cellPhone.replace(/\D/g, '').replace(/^1/, ''), // Remove leading 1
+              formData.cellPhone.replace(/\D/g, '').replace(/^1/, '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3'), // Format as XXX-XXX-XXXX
+              formData.cellPhone.replace(/\D/g, '').replace(/^1/, '').replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3'), // Format as (XXX) XXX-XXXX
+            ];
+            
+            for (const phoneFormat of phoneVariations) {
+              if (phoneFormat !== formData.cellPhone) {
+                console.log('Trying phone format:', phoneFormat);
+                const altPhoneQuery = await db.collection('contacts')
+                  .where('cellPhone', '==', phoneFormat)
+                  .limit(1)
+                  .get();
+                
+                if (!altPhoneQuery.empty) {
+                  isCA = true;
+                  existingContactId = altPhoneQuery.docs[0].id;
+                  existingContactData = altPhoneQuery.docs[0].data();
+                  console.log('Contact found by alternative phone format:', phoneFormat, 'ID:', existingContactId);
+                  console.log('Found contact data:', existingContactData);
+                  break;
+                }
+              }
+            }
+          }
+
           // If not found by email or phone, check by name + address combination
           if (!isCA && formData.name && formData.address_line1 && formData.address_city && formData.address_zip) {
             console.log('Checking by name + address:', formData.name, formData.address_line1, formData.address_city, formData.address_zip);
