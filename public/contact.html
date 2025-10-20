@@ -484,6 +484,7 @@
               existingContactId = emailQuery.docs[0].id;
               existingContactData = emailQuery.docs[0].data();
               console.log('Contact found by email (CA):', isCA, 'ID:', existingContactId);
+              console.log('Found contact data:', existingContactData);
             }
           }
           
@@ -500,6 +501,7 @@
               existingContactId = phoneQuery.docs[0].id;
               existingContactData = phoneQuery.docs[0].data();
               console.log('Contact found by phone (CA):', isCA, 'ID:', existingContactId);
+              console.log('Found contact data:', existingContactData);
             }
           }
           
