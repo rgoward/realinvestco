@@ -320,6 +320,7 @@
         async function handleContactSubmit(e) {
             e.preventDefault();
             console.log('💾 Adding new contact...');
+            console.log('Form submission event:', e);
             
             const formData = new FormData(e.target);
             
