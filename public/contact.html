@@ -487,7 +487,23 @@
             }
           }
           
-          // If not found by email, check by name + address combination
+          // If not found by email, check by phone number (if provided)
+          if (!isCA && formData.cellPhone) {
+            console.log('Checking by phone:', formData.cellPhone);
+            const phoneQuery = await db.collection('contacts')
+              .where('cellPhone', '==', formData.cellPhone)
+              .limit(1)
+              .get();
+            
+            if (!phoneQuery.empty) {
+              isCA = true;
+              existingContactId = phoneQuery.docs[0].id;
+              existingContactData = phoneQuery.docs[0].data();
+              console.log('Contact found by phone (CA):', isCA, 'ID:', existingContactId);
+            }
+          }
+          
+          // If not found by email or phone, check by name + address combination
           if (!isCA && formData.name && formData.address_line1 && formData.address_city && formData.address_zip) {
             console.log('Checking by name + address:', formData.name, formData.address_line1, formData.address_city, formData.address_zip);
             const nameAddressQuery = await db.collection('contacts')
