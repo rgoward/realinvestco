@@ -457,7 +457,7 @@
 
       try {
         // Validate required fields
-        if (!formData.name || !formData.email || !formData.cellPhone || !formData.message) {
+        if (!formData.name || !formData.email || !formData.cellPhone) {
           throw new Error('Please fill in all required fields.');
         }
         // Add contact type to form data
