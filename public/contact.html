@@ -540,6 +540,15 @@
           }
           
           console.log('Final CA status:', isCA, 'Existing ID:', existingContactId);
+          console.log('Form data for lookup:', {
+            email: formData.email,
+            cellPhone: formData.cellPhone,
+            landline: formData.landline,
+            name: formData.name,
+            address_line1: formData.address_line1,
+            address_city: formData.address_city,
+            address_zip: formData.address_zip
+          });
         } catch (error) {
           console.error('Error checking existing contact:', error);
           // Default to Web Up if check fails
@@ -578,8 +587,9 @@
             };
             
             // Update in Firebase
+            console.log('Updating contact with data:', updateData);
             await db.collection('contacts').doc(existingContactId).update(updateData);
-            console.log('✅ Existing contact updated successfully');
+            console.log('✅ Existing contact updated successfully in Firebase');
             
             // Add interaction record
             await addContactInteraction(existingContactId, formData);
