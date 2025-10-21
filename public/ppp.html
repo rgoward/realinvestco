@@ -319,33 +319,33 @@
                     <div class="form-row">
                         <div class="form-group required">
                             <label for="squareFootageFrom">Square Footage From</label>
-                            <input type="number" id="squareFootageFrom" name="squareFootageFrom" placeholder="e.g., 1000" required>
+                            <input type="number" id="squareFootageFrom" name="squareFootageFrom" required>
                         </div>
                         <div class="form-group required">
                             <label for="squareFootageTo">Square Footage To</label>
-                            <input type="number" id="squareFootageTo" name="squareFootageTo" placeholder="e.g., 1500" required>
+                            <input type="number" id="squareFootageTo" name="squareFootageTo" required>
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group required">
                             <label for="lotSizeFrom">Lot Size From (sq ft)</label>
-                            <input type="number" id="lotSizeFrom" name="lotSizeFrom" placeholder="e.g., 5000" required>
+                            <input type="number" id="lotSizeFrom" name="lotSizeFrom" required>
                         </div>
                         <div class="form-group required">
                             <label for="lotSizeTo">Lot Size To (sq ft)</label>
-                            <input type="number" id="lotSizeTo" name="lotSizeTo" placeholder="e.g., 8000" required>
+                            <input type="number" id="lotSizeTo" name="lotSizeTo" required>
                         </div>
                     </div>
 
                     <div class="form-row">
                         <div class="form-group required">
                             <label for="county">County</label>
-                            <input type="text" id="county" name="county" placeholder="e.g., Maricopa County" required>
+                            <input type="text" id="county" name="county" required>
                         </div>
                         <div class="form-group required">
                             <label for="city">City</label>
-                            <input type="text" id="city" name="city" placeholder="e.g., Phoenix" required>
+                            <input type="text" id="city" name="city" required>
                         </div>
                     </div>
                 </div>
@@ -356,11 +356,11 @@
                     <div class="form-row">
                         <div class="form-group">
                             <label for="wholesalePriceFrom">Wholesale Cost Price From</label>
-                            <input type="number" id="wholesalePriceFrom" name="wholesalePriceFrom" placeholder="e.g., 150000" style="width: 100%; padding: 12px; border: 2px solid #E0E0E0; border-radius: 8px; font-size: 16px;">
+                            <input type="number" id="wholesalePriceFrom" name="wholesalePriceFrom" style="width: 100%; padding: 12px; border: 2px solid #E0E0E0; border-radius: 8px; font-size: 16px;">
                         </div>
                         <div class="form-group">
                             <label for="wholesalePriceTo">Wholesale Cost Price To</label>
-                            <input type="number" id="wholesalePriceTo" name="wholesalePriceTo" placeholder="e.g., 400000" style="width: 100%; padding: 12px; border: 2px solid #E0E0E0; border-radius: 8px; font-size: 16px;">
+                            <input type="number" id="wholesalePriceTo" name="wholesalePriceTo" style="width: 100%; padding: 12px; border: 2px solid #E0E0E0; border-radius: 8px; font-size: 16px;">
                         </div>
                     </div>
 
@@ -387,13 +387,8 @@
                     <h3>📝 Additional Information</h3>
                     
                     <div class="form-group">
-                        <label for="investmentGoals">Investment Goals</label>
-                        <textarea id="investmentGoals" name="investmentGoals" rows="4" placeholder="Tell us about your investment strategy, timeline, and any specific requirements..."></textarea>
-                    </div>
-
-                    <div class="form-group">
                         <label for="additionalNotes">Additional Notes</label>
-                        <textarea id="additionalNotes" name="additionalNotes" rows="3" placeholder="Any other preferences or requirements..."></textarea>
+                        <textarea id="additionalNotes" name="additionalNotes" rows="4" placeholder="Tell us about your investment strategy, timeline, and any other requirements or preferences."></textarea>
                     </div>
                 </div>
 
@@ -529,7 +524,6 @@
                 wholesalePriceFrom: formData.get('wholesalePriceFrom') ? parseInt(formData.get('wholesalePriceFrom')) : null,
                 wholesalePriceTo: formData.get('wholesalePriceTo') ? parseInt(formData.get('wholesalePriceTo')) : null,
                 propertyTypes: formData.getAll('propertyTypes'),
-                investmentGoals: formData.get('investmentGoals'),
                 additionalNotes: formData.get('additionalNotes'),
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 source: 'ppp_form'
