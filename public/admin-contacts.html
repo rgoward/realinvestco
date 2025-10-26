@@ -44,8 +44,8 @@
                         <input type="text" id="fullName" name="fullName" required>
                     </div>
                     <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <input type="email" id="email" name="email">
+                        <label for="email">Email Address (Optional)</label>
+                        <input type="email" id="email" name="email" placeholder="Leave blank if unavailable">
                     </div>
                     <div class="form-group">
                         <label for="cellPhone">Cell Phone</label>
@@ -62,6 +62,37 @@
                             <option value="Custom">Custom</option>
                         </select>
                         <input type="text" id="customContactSource" name="customContactSource" placeholder="Enter custom source..." style="display: none; margin-top: 5px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px; width: 100%;">
+                    </div>
+                </div>
+                
+                <!-- Property Notification Preferences -->
+                <div class="form-group">
+                    <h4 style="margin-bottom: 10px; color: #007cba;">📬 Property Notification Preferences</h4>
+                </div>
+                <div class="grid">
+                    <div class="form-group">
+                        <label for="countyInterests">County Interests (for property notifications)</label>
+                        <input type="text" id="countyInterests" name="countyInterests" placeholder="e.g., Ventura, Los Angeles, Orange">
+                        <small style="color: #666; font-size: 0.9em; display: block; margin-top: 5px;">
+                            Separate counties with commas
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label>Notification Preferences</label>
+                        <div style="margin-top: 10px;">
+                            <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <input type="checkbox" id="propertyNotifications" name="propertyNotifications" checked style="width: auto; margin-right: 8px;">
+                                Enable Property Notifications
+                            </label>
+                            <label style="display: flex; align-items: center; margin-bottom: 8px;">
+                                <input type="checkbox" id="smsNotifications" name="smsNotifications" checked style="width: auto; margin-right: 8px;">
+                                SMS Notifications
+                            </label>
+                            <label style="display: flex; align-items: center;">
+                                <input type="checkbox" id="emailNotifications" name="emailNotifications" checked style="width: auto; margin-right: 8px;">
+                                Email Notifications
+                            </label>
+                        </div>
                     </div>
                 </div>
                 
@@ -156,6 +187,43 @@
                 <!-- Message field removed - using Brevo template content -->
                 <button type="submit">📤 Send Email</button>
                 <button type="button" onclick="closeEmailModal()">❌ Cancel</button>
+            </form>
+        </div>
+    </div>
+
+    <div id="smsModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeSmsModal()">&times;</span>
+            <h2>📱 Send SMS</h2>
+            <form id="smsForm">
+                <div class="form-group">
+                    <label for="smsTemplate">Template</label>
+                    <select id="smsTemplate" onchange="loadSmsTemplate()">
+                        <option value="">Select template...</option>
+                        <option value="welcome">Welcome - General Inquiry</option>
+                        <option value="property">Property Inquiry Confirmation</option>
+                        <option value="followup">Follow-up Reminder</option>
+                        <option value="confirmation">Appointment Confirmation</option>
+                        <option value="reminder">New Property Alert</option>
+                        <option value="ca_with_ppp">CA Contact - With PPP</option>
+                        <option value="ca_without_ppp">CA Contact - Without PPP</option>
+                        <option value="web_with_ppp">Web Contact - With PPP</option>
+                        <option value="web_without_ppp">Web Contact - Without PPP</option>
+                        <option value="custom">Custom Message</option>
+                    </select>
+                </div>
+                <div class="form-group" id="customMessageGroup" style="display: none;">
+                    <label for="smsCustomMessage">Custom Message</label>
+                    <textarea id="smsCustomMessage" rows="4" placeholder="Enter your custom SMS message..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Preview:</label>
+                    <div id="smsPreview" style="background: #f5f5f5; padding: 10px; border-radius: 5px; min-height: 50px; border: 1px solid #ddd;">
+                        Select a template to see preview...
+                    </div>
+                </div>
+                <button type="submit">📤 Send SMS</button>
+                <button type="button" onclick="closeSmsModal()">❌ Cancel</button>
             </form>
         </div>
     </div>
@@ -299,12 +367,14 @@
                             </div>
                             <p>📅 Added: ${new Date(contact.dateAdded || contact.timestamp || Date.now()).toLocaleDateString()}</p>
                             ${contact.notes || contact.message ? `<p>📝 ${contact.notes || contact.message}</p>` : ''}
+                            ${contact.countyInterests && contact.countyInterests.length > 0 ? `<p>📍 Counties: ${contact.countyInterests.join(', ')}</p>` : ''}
+                            ${contact.propertyNotifications !== false ? `<p>🔔 Property Notifications: ${contact.smsNotifications !== false ? '📱 SMS ' : ''}${contact.emailNotifications !== false ? '📧 Email' : ''}</p>` : ''}
                             <p style="font-size: 12px; color: #666;">Collection: ${contact.source}</p>
                         </div>
                         <div>
                             <button onclick="viewContactHistory('${contact.id}', '${contact.source}')" style="margin: 5px; background: #17a2b8;">👁️ History</button>
                             <button onclick="openEmailModal('${contact.id}')" style="margin: 5px;">📧 Send Email</button>
-                            ${contact.cellPhone ? '<button onclick="sendSmsToContact(\'' + contact.id + '\', \'' + contact.source + '\')" style="margin: 5px; background: #6f42c1;">📱 Send SMS</button>' : ''}
+                            ${contact.cellPhone ? '<button onclick="openSmsModal(\'' + contact.id + '\', \'' + contact.source + '\')" style="margin: 5px; background: #6f42c1;">📱 Send SMS</button>' : ''}
                             <button onclick="sendDirectMail(\'' + contact.id + '\')" style="margin: 5px; background: #28a745;">📬 Send Mail</button>
                             <button onclick="deleteContact('${contact.id}')" style="margin: 5px; background: #dc3545;">🗑️ Delete</button>
                         </div>
@@ -330,6 +400,13 @@
                 contactSource = formData.get('customContactSource') || 'Custom';
             }
             
+            // Parse county interests
+            const countyInterestsStr = formData.get('countyInterests') || '';
+            const countyInterests = countyInterestsStr
+                .split(',')
+                .map(c => c.trim())
+                .filter(c => c.length > 0);
+            
             const contactData = {
                 name: formData.get('fullName'),
                 email: formData.get('email'),
@@ -344,6 +421,11 @@
                 address_state: formData.get('addressState') || '',
                 address_zip: formData.get('addressZip') || '',
                 address_country: formData.get('addressCountry') || 'US',
+                // Property notification preferences
+                countyInterests: countyInterests,
+                propertyNotifications: formData.get('propertyNotifications') === 'on',
+                smsNotifications: formData.get('smsNotifications') === 'on',
+                emailNotifications: formData.get('emailNotifications') === 'on',
                 // Unified contact system fields
                 contactType: 'admin_contact',
                 source: 'admin',
@@ -951,8 +1033,38 @@
                     return;
                 }
 
-                const message = prompt('Enter SMS message:', `Hi ${contact.name || 'there'}, thanks for your interest in Real InvestCo properties!`);
-                if (!message) return;
+                // Show template selection dialog
+                const templateOptions = [
+                    { type: 'welcome', name: 'Welcome - General Inquiry' },
+                    { type: 'property', name: 'Property Inquiry Confirmation' },
+                    { type: 'followup', name: 'Follow-up Reminder' },
+                    { type: 'confirmation', name: 'Appointment Confirmation' },
+                    { type: 'reminder', name: 'New Property Alert' },
+                    { type: 'ca_with_ppp', name: 'CA Contact - With PPP' },
+                    { type: 'ca_without_ppp', name: 'CA Contact - Without PPP' },
+                    { type: 'web_with_ppp', name: 'Web Contact - With PPP' },
+                    { type: 'web_without_ppp', name: 'Web Contact - Without PPP' }
+                ];
+
+                let templateChoice = prompt(`Select SMS template:\n\n${templateOptions.map((t, i) => `${i + 1}. ${t.name}`).join('\n')}\n\nEnter number (1-9) or 'custom' for custom message:`);
+                
+                if (!templateChoice) return;
+
+                let smsType = 'manual';
+                let customMessage = null;
+
+                if (templateChoice.toLowerCase() === 'custom') {
+                    customMessage = prompt('Enter custom SMS message:', `Hi ${contact.name || 'there'}, thanks for your interest in Real InvestCo properties!`);
+                    if (!customMessage) return;
+                } else {
+                    const templateIndex = parseInt(templateChoice) - 1;
+                    if (templateIndex >= 0 && templateIndex < templateOptions.length) {
+                        smsType = templateOptions[templateIndex].type;
+                    } else {
+                        showStatus('Invalid template selection', 'error');
+                        return;
+                    }
+                }
 
                 const response = await fetch('https://us-central1-realinvestco-web.cloudfunctions.net/sendSmsWebhook', {
                     method: 'POST',
@@ -960,7 +1072,7 @@
                         'Content-Type': 'application/json',
                     },
                     body: JSON.stringify({
-                        smsType: 'manual',
+                        smsType: smsType,
                         contactData: {
                             contactId: contactId,
                             name: contact.name,
@@ -968,7 +1080,7 @@
                             email: contact.email,
                             propertyId: contact.propertyId || null
                         },
-                        customMessage: message
+                        customMessage: customMessage
                     })
                 });
 
