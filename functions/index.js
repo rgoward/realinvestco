@@ -3,6 +3,11 @@ const SibApiV3Sdk = require('sib-api-v3-sdk');
 const admin = require('firebase-admin');
 const nodemailer = require('nodemailer');
 
+// Import mail automation functions
+const { createMailCampaign, verifyAddress, getMailAnalytics } = require('./mailCampaigns');
+const { sendMailWebhook, triggerAutoMail, triggerPropertyMail } = require('./sendMailWebhook');
+const { syncPostGridTemplates, syncContactToPostGrid, syncContactsToPostGrid, sendPostGridMail, sendPostGridPostcard, deleteContactFromPostGrid, createReturnAddress } = require('./postgridSync');
+
 // Initialize Firebase Admin
 if (!admin.apps.length) {
   admin.initializeApp();
@@ -73,6 +78,126 @@ exports.notifyPropertyInquiry = functions.firestore.document('propertyInquiries/
     console.log('Property inquiry email sent.');
   } catch (error) {
     console.error('Error sending property inquiry email:', error);
+  }
+});
+
+// New notification function for the contacts collection
+exports.notifyNewContact = functions.firestore.document('contacts/{docId}').onCreate(async (snap, context) => {
+  try {
+    // Set the API key for this request
+    apiKey.apiKey = functions.config().brevo.key;
+    
+    const data = snap.data();
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+    
+    // Determine if this is a property inquiry or general inquiry
+    const isPropertyInquiry = data.propertyId || data.propertyTitle || data.contactType === 'property_inquiry';
+    const inquiryType = isPropertyInquiry ? 'Property Inquiry' : 'General Inquiry';
+    const subject = `New ${inquiryType} Received`;
+    
+    // Create formatted HTML content
+    const html = `
+      <h2>New ${inquiryType}</h2>
+      <p><strong>Name:</strong> ${data.name || 'Not provided'}</p>
+      <p><strong>Email:</strong> ${data.email || 'Not provided'}</p>
+      <p><strong>Phone:</strong> ${data.cellPhone || data.landline || 'Not provided'}</p>
+      ${data.propertyTitle ? `<p><strong>Property:</strong> ${data.propertyTitle}</p>` : ''}
+      ${data.propertyId ? `<p><strong>Property ID:</strong> ${data.propertyId}</p>` : ''}
+      <p><strong>Message:</strong></p>
+      <p style="background: #f5f5f5; padding: 10px; border-radius: 5px;">${data.message || 'No message provided'}</p>
+      <hr>
+      <p><strong>Submitted:</strong> ${new Date().toLocaleString()}</p>
+      <p><strong>Contact Type:</strong> ${data.contactType || 'Unknown'}</p>
+      ${data.source ? `<p><strong>Source:</strong> ${data.source}</p>` : ''}
+    `;
+    
+    const sendSmtpEmail = {
+      to: [{ email: 'info@realinvestco.com', name: 'Admin' }],
+      sender: { email: 'info@realinvestco.com', name: 'Website Bot' },
+      subject: subject,
+      htmlContent: html
+    };
+    
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log(`${inquiryType} notification email sent.`);
+  } catch (error) {
+    console.error('Error sending contact notification email:', error);
+  }
+});
+
+// Notification for when a contact is updated
+exports.notifyContactUpdate = functions.firestore.document('contacts/{docId}').onUpdate(async (change, context) => {
+  try {
+    const before = change.before.data();
+    const after = change.after.data();
+    const docId = context.params.docId;
+    
+    // Set the API key for this request
+    apiKey.apiKey = functions.config().brevo.key;
+    const apiInstance = new SibApiV3Sdk.TransactionalEmailsApi();
+    
+    // Check if meaningful changes occurred (not just timestamp updates)
+    const meaningfulChanges = [];
+    const fieldsToCheck = ['name', 'email', 'cellPhone', 'landline', 'message', 'propertyId', 'propertyTitle', 'pppCompleted'];
+    
+    for (const field of fieldsToCheck) {
+      if (before[field] !== after[field]) {
+        meaningfulChanges.push({
+          field: field,
+          before: before[field] || 'Not provided',
+          after: after[field] || 'Not provided'
+        });
+      }
+    }
+    
+    // Only send notification if there are meaningful changes
+    if (meaningfulChanges.length === 0) {
+      console.log('No meaningful changes detected, skipping notification');
+      return null;
+    }
+    
+    // Determine if this is a property inquiry or general inquiry
+    const isPropertyInquiry = after.propertyId || after.propertyTitle || after.contactType === 'property_inquiry';
+    const inquiryType = isPropertyInquiry ? 'Property Inquiry Update' : 'General Inquiry Update';
+    const subject = `${inquiryType} - Contact Updated`;
+    
+    // Create formatted HTML content showing what changed
+    let changesHtml = '<h3>Changes Made:</h3><ul>';
+    meaningfulChanges.forEach(change => {
+      changesHtml += `<li><strong>${change.field}:</strong> "${change.before}" → "${change.after}"</li>`;
+    });
+    changesHtml += '</ul>';
+    
+    const html = `
+      <h2>Contact Updated</h2>
+      <p><strong>Contact ID:</strong> ${docId}</p>
+      <hr>
+      <h3>Current Contact Information:</h3>
+      <p><strong>Name:</strong> ${after.name || 'Not provided'}</p>
+      <p><strong>Email:</strong> ${after.email || 'Not provided'}</p>
+      <p><strong>Phone:</strong> ${after.cellPhone || after.landline || 'Not provided'}</p>
+      ${after.propertyTitle ? `<p><strong>Property:</strong> ${after.propertyTitle}</p>` : ''}
+      ${after.propertyId ? `<p><strong>Property ID:</strong> ${after.propertyId}</p>` : ''}
+      <p><strong>PPP Completed:</strong> ${after.pppCompleted ? 'Yes' : 'No'}</p>
+      <hr>
+      ${changesHtml}
+      <hr>
+      <p><strong>Updated:</strong> ${new Date().toLocaleString()}</p>
+      <p><strong>Contact Type:</strong> ${after.contactType || 'Unknown'}</p>
+      ${after.source ? `<p><strong>Source:</strong> ${after.source}</p>` : ''}
+    `;
+    
+    const sendSmtpEmail = {
+      to: [{ email: 'info@realinvestco.com', name: 'Admin' }],
+      sender: { email: 'info@realinvestco.com', name: 'Website Bot' },
+      subject: subject,
+      htmlContent: html
+    };
+    
+    await apiInstance.sendTransacEmail(sendSmtpEmail);
+    console.log(`Contact update notification email sent for ID: ${docId}`);
+  } catch (error) {
+    console.error('Error sending contact update notification email:', error);
   }
 });
 
@@ -177,15 +302,10 @@ exports.sendEmailWebhook = functions.https.onRequest(async (req, res) => {
                   </p>
                 </div>
   
-            <!-- Logo Section at Bottom -->
-            <div style="text-align: center; padding: 20px 0; border-top: 1px solid #e9ecef;">
-              <img src="https://realinvestco-msuk16mlq-rich-gowards-projects.vercel.app/Pics/email-logo.png" 
-                   alt="Real InvestCo Logo" 
-                   style="max-width: 150px; height: auto; margin: 0 auto;">
-            </div>
-          </div>
-        </body>
-        </html>
+
+              </div>
+            </body>
+            </html>
           `
         };
         break;
@@ -926,4 +1046,1519 @@ exports.sendEmailMultiTemplate = functions.https.onRequest(async (req, res) => {
       details: error.message 
     });
   }
+}); 
+
+// New function to add contacts to Brevo and send welcome emails
+exports.addContactToBrevo = functions.https.onRequest(async (req, res) => {
+  // Enable CORS
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    // Set the API key for this request
+    const brevoApiKey = functions.config().brevo.key;
+    if (!brevoApiKey) {
+      console.error('Brevo API key not configured');
+      return res.status(500).json({ error: 'Brevo API key not configured' });
+    }
+    
+    apiKey.apiKey = brevoApiKey;
+    
+    const { name, email, phone, message, source = 'website', sendEmail = true, isCA = false, pppProfile = null } = req.body;
+    
+    if (!email || !name) {
+      return res.status(400).json({ error: 'Email and name are required' });
+    }
+
+    console.log('Adding contact to Brevo:', { name, email, phone, message, source, isCA });
+
+    // 1. Store contact in Firebase first
+    let contactResult;
+    let brevoContactId = null;
+    
+    try {
+      if (isCA) {
+        // For CA contacts, try to find and update existing contact
+        const existingContactQuery = await db.collection('contacts').where('email', '==', email).limit(1).get();
+        
+        if (!existingContactQuery.empty) {
+          // Update existing contact
+          const existingContact = existingContactQuery.docs[0];
+          await existingContact.ref.update({
+            name: name,
+            phone: phone || '',
+            message: message || '',
+            source: source,
+            addedToBrevo: false, // Will update after Brevo creation
+            brevoContactId: null, // Will update after Brevo creation
+            lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          contactResult = { id: existingContact.id };
+          console.log('CA contact updated in Firebase:', contactResult);
+        } else {
+          // Create new contact if not found
+          const contactDoc = await db.collection('contacts').add({
+            name,
+            email,
+            phone: phone || '',
+            message: message || '',
+            source,
+            addedToBrevo: false, // Will update after Brevo creation
+            brevoContactId: null, // Will update after Brevo creation
+            welcomeEmailSent: false,
+            timestamp: admin.firestore.FieldValue.serverTimestamp()
+          });
+          
+          contactResult = { id: contactDoc.id };
+          console.log('CA contact created in Firebase:', contactResult);
+        }
+      } else {
+        // For Web Up contacts, create new contact
+        const contactData = {
+          name,
+          email,
+          phone: phone || '',
+          message: message || '',
+          source,
+          addedToBrevo: false, // Will update after Brevo creation
+          brevoContactId: null, // Will update after Brevo creation
+          welcomeEmailSent: false,
+          timestamp: admin.firestore.FieldValue.serverTimestamp()
+        };
+        
+        // Add PPP data if provided
+        if (pppProfile) {
+          contactData.pppProfile = pppProfile;
+          contactData.pppCompleted = true;
+          contactData.pppCompletedAt = admin.firestore.FieldValue.serverTimestamp();
+        }
+        
+        const contactDoc = await db.collection('contacts').add(contactData);
+        
+        contactResult = { id: contactDoc.id };
+        console.log('Web Up contact created in Firebase:', contactResult);
+      }
+      
+    } catch (contactError) {
+      console.error('Error storing contact in Firebase:', contactError);
+      return res.status(500).json({ error: 'Failed to store contact in Firebase' });
+    }
+
+    // 2. Add contact to Brevo
+    try {
+      const contactsApi = new SibApiV3Sdk.ContactsApi();
+      const createContact = {
+        email: email,
+        attributes: {
+          FIRSTNAME: name.split(' ')[0] || '',
+          LASTNAME: name.split(' ').slice(1).join(' ') || '',
+          MESSAGE: message || '',
+          SOURCE: source
+        },
+        listIds: [1], // Add to default list
+        updateEnabled: true
+      };
+      
+      // Only add SMS if phone number is valid
+      if (phone && phone.trim()) {
+        // Format phone number for Brevo (remove non-digits and add +1 if needed)
+        let formattedPhone = phone.replace(/\D/g, '');
+        if (formattedPhone.length === 10) {
+          formattedPhone = '+1' + formattedPhone;
+        } else if (formattedPhone.length === 11 && formattedPhone.startsWith('1')) {
+          formattedPhone = '+' + formattedPhone;
+        }
+        createContact.attributes.SMS = formattedPhone;
+      }
+      
+      const brevoResult = await contactsApi.createContact(createContact);
+      brevoContactId = brevoResult.id;
+      console.log('Contact added to Brevo:', brevoResult);
+      
+      // Update Firebase contact with Brevo info
+      await db.collection('contacts').doc(contactResult.id).update({
+        addedToBrevo: true,
+        brevoContactId: brevoContactId
+      });
+      
+    } catch (brevoError) {
+      console.error('Error adding contact to Brevo:', brevoError);
+      // Don't fail the entire operation if Brevo fails
+    }
+
+    // 2. Send welcome email via Brevo Transactional API (if requested)
+    if (sendEmail) {
+    const transactionalApi = new SibApiV3Sdk.TransactionalEmailsApi();
+    const sendSmtpEmail = {
+      to: [{ email: email, name: name }],
+      sender: { email: 'rich@realinvestco.com', name: 'Real InvestCo' },
+      subject: `Welcome to Real InvestCo - ${name}`,
+      htmlContent: `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width, initial-scale=1.0">
+          <title>Welcome to Real InvestCo</title>
+        </head>
+        <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f6fb;">
+          <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px;">
+            <!-- Header -->
+            <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1A237E;">
+              <h1 style="color: #1A237E; margin: 10px 0 0 0; font-size: 24px;">Real InvestCo</h1>
+            </div>
+            
+            <!-- Main Content -->
+            <div style="padding: 30px 20px;">
+              <h2 style="color: #1A237E; margin-bottom: 20px;">Hello ${name},</h2>
+              
+              <p style="color: #333; line-height: 1.6; margin-bottom: 15px;">
+                Thank you for reaching out to <strong>Real InvestCo</strong>! We're excited to help you with your real estate investment goals.
+              </p>
+              
+              <p style="color: #333; line-height: 1.6; margin-bottom: 15px;">
+                We specialize in helping investors find the right opportunities:
+              </p>
+              
+              <ul style="color: #333; line-height: 1.6; margin-bottom: 20px;">
+                <li>Wholesale deals</li>
+                <li>Fix-and-flip opportunities</li>
+                <li>Long-term investments</li>
+                <li>Property analysis and due diligence</li>
+              </ul>
+              
+              <p style="color: #333; line-height: 1.6; margin-bottom: 20px;">
+                I'll be in touch within 24 hours to discuss your specific needs and show you current opportunities.
+              </p>
+              
+              <!-- Call to Action -->
+              <div style="background-color: #1A237E; padding: 20px; border-radius: 8px; text-align: center; margin: 30px 0;">
+                <p style="color: #ffffff; margin: 0 0 15px 0; font-size: 18px; font-weight: bold;">
+                  Ready to Get Started?
+                </p>
+                <p style="color: #ffffff; margin: 0; font-size: 16px;">
+                  Call: (555) 123-4567<br>
+                  Or reply to this email
+                </p>
+              </div>
+              
+              <p style="color: #333; line-height: 1.6; margin-bottom: 0;">
+                Best regards,<br>
+                <strong>Real InvestCo Team</strong>
+              </p>
+            </div>
+            
+            <!-- Footer -->
+            <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
+              <p style="color: #666; margin: 0 0 10px 0; font-size: 14px;">
+                <strong>Real InvestCo</strong><br>
+                Your trusted partner in real estate investment
+              </p>
+              <p style="color: #666; margin: 0; font-size: 12px;">
+                <a href="https://realinvestco-msuk16mlq-rich-gowards-projects.vercel.app" style="color: #1A237E; text-decoration: none;">Visit our website</a>
+              </p>
+            </div>
+          </div>
+        </body>
+        </html>
+      `
+    };
+    
+    const emailResult = await transactionalApi.sendTransacEmail(sendSmtpEmail);
+    console.log('Welcome email sent via Brevo:', emailResult);
+    } // End of if (sendEmail)
+
+    // 3. Update the existing contact with email status
+    if (contactResult.id !== 'temp-id') {
+      await db.collection('contacts').doc(contactResult.id).update({
+      addedToBrevo: true,
+        welcomeEmailSent: sendEmail
+    });
+    }
+
+    res.status(200).json({ 
+      success: true, 
+      message: contactResult.id === 'temp-id' ? 
+        (sendEmail ? 'Welcome email sent (contact storage failed)' : 'Contact storage failed') :
+        (sendEmail ? 'Contact stored in Firebase and welcome email sent' : 'Contact stored in Firebase'),
+      contactId: contactResult.id,
+      emailId: sendEmail ? emailResult?.messageId : null
+    });
+
+  } catch (error) {
+    console.error('Error in addContactToBrevo:', error);
+    res.status(500).json({ 
+      error: 'Failed to process contact', 
+      details: error.message 
+    });
+  }
 });
+
+// Function to get Brevo contact lists
+exports.getBrevoLists = functions.https.onRequest(async (req, res) => {
+  // Enable CORS
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    // Set the API key for this request
+    apiKey.apiKey = functions.config().brevo.key;
+    
+    const contactsApi = new SibApiV3Sdk.ContactsApi();
+    const lists = await contactsApi.getLists();
+    
+    res.status(200).json({ 
+      success: true, 
+      lists: lists.lists 
+    });
+
+  } catch (error) {
+    console.error('Error getting Brevo lists:', error);
+    res.status(500).json({ 
+      error: 'Failed to get Brevo lists', 
+      details: error.message 
+    });
+  }
+});
+
+// Function to get Firebase Functions IP for Brevo whitelisting
+exports.getFirebaseIP = functions.https.onRequest(async (req, res) => {
+  // Enable CORS
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    // Get the IP address of the Firebase Function
+    const clientIP = req.ip || req.connection.remoteAddress || req.socket.remoteAddress || req.connection.socket?.remoteAddress;
+    
+    res.status(200).json({ 
+      success: true, 
+      message: 'Firebase Functions IP for Brevo whitelisting',
+      ip: clientIP,
+      note: 'Add this IP to Brevo authorized IPs at: https://app.brevo.com/security/authorised_ips'
+    });
+
+  } catch (error) {
+    console.error('Error getting Firebase IP:', error);
+    res.status(500).json({ 
+      error: 'Failed to get Firebase IP', 
+      details: error.message 
+    });
+  }
+});
+
+// Function to send emails using Brevo templates
+exports.sendBrevoTemplateEmail = functions.https.onRequest(async (req, res) => {
+  // Enable CORS
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    // Set the API key for this request
+    const brevoApiKey = functions.config().brevo.key;
+    if (!brevoApiKey) {
+      console.error('Brevo API key not configured');
+      return res.status(500).json({ error: 'Brevo API key not configured' });
+    }
+    
+    apiKey.apiKey = brevoApiKey;
+    
+    const { 
+      toEmail, 
+      toName, 
+      templateId, 
+      templateVariables = {},
+      subject = '',
+      senderEmail = 'rich@realinvestco.com',
+      senderName = 'Real InvestCo'
+    } = req.body;
+    
+    if (!toEmail || !toName) {
+      return res.status(400).json({ error: 'Email and name are required' });
+    }
+
+    console.log('Sending Brevo template email:', { 
+      toEmail, 
+      toName, 
+      templateId, 
+      templateVariables 
+    });
+
+    // Send email using Brevo Transactional API with template
+    const transactionalApi = new SibApiV3Sdk.TransactionalEmailsApi();
+    
+    // Add firstName parameter for Brevo template compatibility
+    const nameParts = toName.split(' ');
+    const firstName = nameParts[0] || '';
+    const lastName = nameParts.slice(1).join(' ') || '';
+    
+    const brevoParams = {
+      ...templateVariables,
+      firstName: firstName,  // For {{ params.firstName }} syntax
+      lastName: lastName,    // For {{ params.lastName }} syntax
+      fullName: toName,      // For {{ params.fullName }} syntax
+      email: toEmail,        // For {{ params.email }} syntax
+      // Also include variations for compatibility
+      FIRSTNAME: firstName,
+      LASTNAME: lastName,
+      FULLNAME: toName
+    };
+
+    console.log('DEBUG: brevoParams being sent:', brevoParams);
+    
+    const sendSmtpEmail = {
+      to: [{ email: toEmail, name: toName }],
+      sender: { email: senderEmail, name: senderName },
+      subject: subject,
+      templateId: parseInt(templateId), // Convert to integer for Brevo
+      params: brevoParams // Template variables with firstName
+    };
+    
+    console.log('DEBUG: Final sendSmtpEmail object:', JSON.stringify(sendSmtpEmail, null, 2));
+    
+    const emailResult = await transactionalApi.sendTransacEmail(sendSmtpEmail);
+    console.log('Brevo template email sent:', emailResult);
+
+    // Log the email
+    await db.collection('emailLogs').add({
+      contactEmail: toEmail,
+      contactName: toName,
+      templateType: templateId,
+      subject: subject,
+      sentAt: admin.firestore.FieldValue.serverTimestamp(),
+      status: 'sent',
+      messageId: emailResult.messageId || null,
+      isBrevoTemplate: true,
+      templateVariables: templateVariables
+    });
+
+    res.status(200).json({ 
+      success: true, 
+      message: 'Brevo template email sent successfully',
+      messageId: emailResult.messageId,
+      templateId: templateId
+    });
+
+  } catch (error) {
+    console.error('Error sending Brevo template email:', error);
+    
+    // Log the error
+    try {
+      await db.collection('emailLogs').add({
+        contactEmail: req.body.toEmail || null,
+        contactName: req.body.toName || null,
+        templateType: req.body.templateId || 'unknown',
+        subject: 'Brevo template email failed to send',
+        sentAt: admin.firestore.FieldValue.serverTimestamp(),
+        status: 'failed',
+        error: error.message,
+        isBrevoTemplate: true
+      });
+    } catch (logError) {
+      console.error('Error logging Brevo template email failure:', logError);
+    }
+
+    res.status(500).json({ 
+      error: 'Failed to send Brevo template email',
+      details: error.message 
+    });
+  }
+});
+
+// Function to get available Brevo templates
+exports.getBrevoTemplates = functions.https.onRequest(async (req, res) => {
+  // Enable CORS
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    // Set the API key for this request
+    const brevoApiKey = functions.config().brevo.key;
+    if (!brevoApiKey) {
+      console.error('Brevo API key not configured');
+      return res.status(500).json({ error: 'Brevo API key not configured' });
+    }
+    
+    apiKey.apiKey = brevoApiKey;
+    
+    // Test multiple Brevo API endpoints
+    console.log('Testing Brevo API endpoints...');
+    
+    // Try different endpoints - updated with correct Brevo API endpoints
+    const endpoints = [
+      'https://api.brevo.com/v3/smtp/templates',
+      'https://api.brevo.com/v3/templates',
+      'https://api.brevo.com/v3/senders/templates'
+    ];
+    
+    let templates = [];
+    let workingEndpoint = '';
+    
+    for (const endpoint of endpoints) {
+      try {
+        console.log(`Testing endpoint: ${endpoint}`);
+        const response = await fetch(endpoint, {
+          method: 'GET',
+          headers: {
+            'api-key': brevoApiKey,
+            'Content-Type': 'application/json'
+          }
+        });
+        
+        console.log(`Endpoint ${endpoint} status:`, response.status);
+        
+        if (response.ok) {
+          const result = await response.json();
+          console.log(`Endpoint ${endpoint} result:`, result);
+          
+          if (result.templates && result.templates.length > 0) {
+            templates = result.templates;
+            workingEndpoint = endpoint;
+            break;
+          }
+        } else {
+          const errorText = await response.text();
+          console.log(`Endpoint ${endpoint} error:`, errorText);
+        }
+      } catch (error) {
+        console.log(`Endpoint ${endpoint} failed:`, error.message);
+      }
+    }
+    
+    console.log('Final templates found:', templates.length);
+    console.log('Working endpoint:', workingEndpoint);
+    
+    res.status(200).json({ 
+      success: true, 
+      templates: templates,
+      workingEndpoint: workingEndpoint
+    });
+
+  } catch (error) {
+    console.error('Error getting Brevo templates:', error);
+    res.status(500).json({ 
+      error: 'Failed to get Brevo templates', 
+      details: error.message 
+    });
+  }
+});
+
+// ===== SMS AUTOMATION FUNCTIONS =====
+
+/**
+ * Send SMS messages via Brevo API
+ */
+exports.sendSmsWebhook = functions.https.onRequest(async (req, res) => {
+    // Enable CORS
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        res.status(200).send('');
+        return;
+    }
+
+    if (req.method !== 'POST') {
+        res.status(405).send('Method not allowed');
+        return;
+    }
+
+    try {
+        const { smsType, contactData, templateId, customMessage } = req.body;
+
+        // Validate required fields
+        if (!contactData || !contactData.phone) {
+            res.status(400).json({ error: 'Contact phone number is required' });
+            return;
+        }
+
+        // Get SMS settings from Firestore
+        const settingsDoc = await db.collection('smsSettings').doc('config').get();
+        const settings = settingsDoc.exists ? settingsDoc.data() : {};
+
+        const brevoApiKey = settings.brevoApiKey;
+        if (!brevoApiKey) {
+            res.status(400).json({ error: 'Brevo API key not configured' });
+            return;
+        }
+
+        // Get SMS template or use custom message
+        let messageContent = customMessage;
+        let templateData = null;
+
+        if (templateId) {
+            const templateDoc = await db.collection('smsTemplates').doc(templateId).get();
+            if (templateDoc.exists) {
+                templateData = templateDoc.data();
+                messageContent = templateData.content;
+            }
+        } else if (smsType) {
+            // Get default template based on SMS type
+            const templatesSnapshot = await db.collection('smsTemplates')
+                .where('type', '==', smsType)
+                .limit(1)
+                .get();
+            
+            if (!templatesSnapshot.empty) {
+                templateData = templatesSnapshot.docs[0].data();
+                messageContent = templateData.content;
+            }
+        }
+
+        if (!messageContent) {
+            res.status(400).json({ error: 'No SMS message content provided' });
+            return;
+        }
+
+        // Replace template variables
+        messageContent = replaceSmsTemplateVariables(messageContent, contactData);
+
+        // Prepare phone number (ensure it's in international format)
+        let phoneNumber = contactData.phone.replace(/\D/g, ''); // Remove non-digits
+        if (phoneNumber.length === 10) {
+            phoneNumber = '1' + phoneNumber; // Add US country code
+        }
+        if (!phoneNumber.startsWith('1')) {
+            phoneNumber = '1' + phoneNumber;
+        }
+
+        // Send SMS via Brevo API
+        const axios = require('axios');
+        const smsData = {
+            type: 'transactional',
+            unicodeEnabled: false,
+            recipient: phoneNumber,
+            content: messageContent,
+            sender: settings.smsSender || 'RealInvestCo'
+        };
+
+        console.log('Sending SMS:', smsData);
+
+        const brevoResponse = await axios.post(
+            'https://api.brevo.com/v3/transactionalSMS/sms',
+            smsData,
+            {
+                headers: {
+                    'api-key': brevoApiKey,
+                    'Content-Type': 'application/json'
+                }
+            }
+        );
+
+        console.log('Brevo SMS response:', brevoResponse.data);
+
+        // Log SMS in Firestore
+        const smsLog = {
+            recipient: phoneNumber,
+            content: messageContent,
+            smsType: smsType || 'custom',
+            templateId: templateId || null,
+            contactId: contactData.contactId || null,
+            propertyId: contactData.propertyId || null,
+            status: 'sent',
+            brevoMessageId: brevoResponse.data.messageId || null,
+            timestamp: admin.firestore.FieldValue.serverTimestamp(),
+            brevoResponse: brevoResponse.data
+        };
+
+        await db.collection('smsLogs').add(smsLog);
+
+        res.status(200).json({
+            success: true,
+            messageId: brevoResponse.data.messageId,
+            recipient: phoneNumber,
+            content: messageContent
+        });
+
+    } catch (error) {
+        console.error('SMS sending error:', error);
+        
+        // Log failed SMS attempt
+        try {
+            await db.collection('smsLogs').add({
+                recipient: req.body.contactData?.phone || 'unknown',
+                content: req.body.customMessage || 'unknown',
+                smsType: req.body.smsType || 'custom',
+                status: 'failed',
+                error: error.message,
+                timestamp: admin.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (logError) {
+            console.error('Failed to log SMS error:', logError);
+        }
+
+        if (error.response) {
+            res.status(error.response.status).json({
+                error: 'Brevo API error',
+                details: error.response.data
+            });
+        } else {
+            res.status(500).json({
+                error: 'Internal server error',
+                details: error.message
+            });
+        }
+    }
+});
+
+/**
+ * Create and execute SMS campaigns
+ */
+exports.createSmsCampaign = functions.https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        res.status(200).send('');
+        return;
+    }
+
+    if (req.method !== 'POST') {
+        res.status(405).send('Method not allowed');
+        return;
+    }
+
+    try {
+        const { name, templateId, audience, schedule, scheduledTime } = req.body;
+
+        // Validate required fields
+        if (!name || !templateId || !audience) {
+            res.status(400).json({ error: 'Missing required fields: name, templateId, audience' });
+            return;
+        }
+
+        // Get SMS template
+        const templateDoc = await db.collection('smsTemplates').doc(templateId).get();
+        if (!templateDoc.exists) {
+            res.status(400).json({ error: 'SMS template not found' });
+            return;
+        }
+
+        const template = templateDoc.data();
+
+        // Get target contacts based on audience
+        const contacts = await getSmsTargetContacts(audience);
+        
+        if (contacts.length === 0) {
+            res.status(400).json({ error: 'No contacts found for the specified audience' });
+            return;
+        }
+
+        // Create campaign record
+        const campaignData = {
+            name,
+            templateId,
+            template: template.content,
+            audience,
+            schedule,
+            scheduledTime: scheduledTime ? admin.firestore.Timestamp.fromDate(new Date(scheduledTime)) : null,
+            status: schedule === 'now' ? 'sending' : 'scheduled',
+            recipientCount: contacts.length,
+            sentCount: 0,
+            deliveredCount: 0,
+            failedCount: 0,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        };
+
+        const campaignRef = await db.collection('smsCampaigns').add(campaignData);
+        const campaignId = campaignRef.id;
+
+        // If sending now, execute immediately
+        if (schedule === 'now') {
+            await executeSmsCampaign(campaignId, contacts, template, await getSmsSettings());
+        }
+
+        res.status(200).json({
+            success: true,
+            campaignId,
+            recipientCount: contacts.length,
+            status: campaignData.status
+        });
+
+    } catch (error) {
+        console.error('Error creating SMS campaign:', error);
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+});
+
+/**
+ * Get SMS analytics
+ */
+exports.getSmsAnalytics = functions.https.onRequest(async (req, res) => {
+    res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Methods', 'GET, OPTIONS');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+    if (req.method === 'OPTIONS') {
+        res.status(200).send('');
+        return;
+    }
+
+    try {
+        const days = parseInt(req.query.days) || 30;
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - days);
+
+        const snapshot = await db.collection('smsLogs')
+            .where('timestamp', '>=', startDate)
+            .get();
+
+        const analytics = {
+            totalSent: 0,
+            delivered: 0,
+            failed: 0,
+            campaigns: 0,
+            dailyStats: {}
+        };
+
+        const campaignIds = new Set();
+
+        snapshot.forEach(doc => {
+            const data = doc.data();
+            analytics.totalSent++;
+            
+            if (data.status === 'delivered' || data.status === 'sent') {
+                analytics.delivered++;
+            } else if (data.status === 'failed') {
+                analytics.failed++;
+            }
+
+            if (data.campaignId) {
+                campaignIds.add(data.campaignId);
+            }
+
+            // Daily stats
+            const date = data.timestamp.toDate().toDateString();
+            if (!analytics.dailyStats[date]) {
+                analytics.dailyStats[date] = { sent: 0, delivered: 0, failed: 0 };
+            }
+            analytics.dailyStats[date].sent++;
+            if (data.status === 'delivered' || data.status === 'sent') {
+                analytics.dailyStats[date].delivered++;
+            } else if (data.status === 'failed') {
+                analytics.dailyStats[date].failed++;
+            }
+        });
+
+        analytics.campaigns = campaignIds.size;
+        analytics.deliveryRate = analytics.totalSent > 0 ? 
+            Math.round((analytics.delivered / analytics.totalSent) * 100) : 0;
+
+        res.status(200).json(analytics);
+
+    } catch (error) {
+        console.error('Error getting SMS analytics:', error);
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+});
+
+// ===== SMS HELPER FUNCTIONS =====
+
+async function getSmsSettings() {
+    const settingsDoc = await db.collection('smsSettings').doc('config').get();
+    return settingsDoc.exists ? settingsDoc.data() : {};
+}
+
+async function getSmsTargetContacts(audience) {
+    const contacts = [];
+
+    try {
+        switch (audience) {
+            case 'all':
+                const allGeneral = await db.collection('generalInquiries')
+                    .where('cellPhone', '!=', '')
+                    .get();
+                const allProperty = await db.collection('propertyInquiries')
+                    .where('cellPhone', '!=', '')
+                    .get();
+                
+                allGeneral.forEach(doc => {
+                    const data = doc.data();
+                    contacts.push({
+                        contactId: doc.id,
+                        name: data.name,
+                        phone: data.cellPhone,
+                        email: data.email,
+                        type: 'general'
+                    });
+                });
+                
+                allProperty.forEach(doc => {
+                    const data = doc.data();
+                    contacts.push({
+                        contactId: doc.id,
+                        name: data.name,
+                        phone: data.cellPhone,
+                        email: data.email,
+                        propertyId: data.propertyId,
+                        type: 'property'
+                    });
+                });
+                break;
+
+            case 'inbound':
+                const inboundSnapshot = await db.collection('generalInquiries')
+                    .where('cellPhone', '!=', '')
+                    .get();
+                
+                inboundSnapshot.forEach(doc => {
+                    const data = doc.data();
+                    contacts.push({
+                        contactId: doc.id,
+                        name: data.name,
+                        phone: data.cellPhone,
+                        email: data.email,
+                        type: 'general'
+                    });
+                });
+                break;
+
+            case 'property':
+                const propertySnapshot = await db.collection('propertyInquiries')
+                    .where('cellPhone', '!=', '')
+                    .get();
+                
+                propertySnapshot.forEach(doc => {
+                    const data = doc.data();
+                    contacts.push({
+                        contactId: doc.id,
+                        name: data.name,
+                        phone: data.cellPhone,
+                        email: data.email,
+                        propertyId: data.propertyId,
+                        type: 'property'
+                    });
+                });
+                break;
+
+            case 'newsletter':
+                const newsletterGeneral = await db.collection('generalInquiries')
+                    .where('newsletter', '==', true)
+                    .where('cellPhone', '!=', '')
+                    .get();
+                const newsletterProperty = await db.collection('propertyInquiries')
+                    .where('newsletter', '==', true)
+                    .where('cellPhone', '!=', '')
+                    .get();
+                
+                newsletterGeneral.forEach(doc => {
+                    const data = doc.data();
+                    contacts.push({
+                        contactId: doc.id,
+                        name: data.name,
+                        phone: data.cellPhone,
+                        email: data.email,
+                        type: 'general'
+                    });
+                });
+                
+                newsletterProperty.forEach(doc => {
+                    const data = doc.data();
+                    contacts.push({
+                        contactId: doc.id,
+                        name: data.name,
+                        phone: data.cellPhone,
+                        email: data.email,
+                        propertyId: data.propertyId,
+                        type: 'property'
+                    });
+                });
+                break;
+
+            default:
+                throw new Error('Invalid audience type');
+        }
+
+        // Remove duplicates based on phone number
+        const uniqueContacts = contacts.filter((contact, index, self) =>
+            index === self.findIndex(c => c.phone === contact.phone)
+        );
+
+        return uniqueContacts;
+
+    } catch (error) {
+        console.error('Error getting target contacts:', error);
+        return [];
+    }
+}
+
+async function executeSmsCampaign(campaignId, contacts, template, settings) {
+    const axios = require('axios');
+    
+    try {
+        let sentCount = 0;
+        let failedCount = 0;
+
+        for (const contact of contacts) {
+            try {
+                const messageContent = replaceSmsTemplateVariables(template.content, contact);
+                let phoneNumber = contact.phone.replace(/\D/g, '');
+                if (phoneNumber.length === 10) {
+                    phoneNumber = '1' + phoneNumber;
+                }
+
+                const smsData = {
+                    type: 'transactional',
+                    unicodeEnabled: false,
+                    recipient: phoneNumber,
+                    content: messageContent,
+                    sender: settings.smsSender || 'RealInvestCo'
+                };
+
+                const brevoResponse = await axios.post(
+                    'https://api.brevo.com/v3/transactionalSMS/sms',
+                    smsData,
+                    {
+                        headers: {
+                            'api-key': settings.brevoApiKey,
+                            'Content-Type': 'application/json'
+                        }
+                    }
+                );
+
+                await db.collection('smsLogs').add({
+                    campaignId,
+                    recipient: phoneNumber,
+                    recipientName: contact.name,
+                    content: messageContent,
+                    status: 'sent',
+                    brevoMessageId: brevoResponse.data.messageId,
+                    contactId: contact.contactId,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                });
+
+                sentCount++;
+                await new Promise(resolve => setTimeout(resolve, 1000)); // Rate limiting
+
+            } catch (error) {
+                console.error('Error sending SMS to', contact.phone, ':', error);
+                
+                await db.collection('smsLogs').add({
+                    campaignId,
+                    recipient: contact.phone,
+                    recipientName: contact.name,
+                    content: template.content,
+                    status: 'failed',
+                    error: error.message,
+                    contactId: contact.contactId,
+                    timestamp: admin.firestore.FieldValue.serverTimestamp()
+                });
+
+                failedCount++;
+            }
+        }
+
+        // Update campaign with final stats
+        await db.collection('smsCampaigns').doc(campaignId).update({
+            status: 'completed',
+            sentCount,
+            failedCount,
+            completedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+
+    } catch (error) {
+        console.error('Error executing SMS campaign:', error);
+        await db.collection('smsCampaigns').doc(campaignId).update({
+            status: 'failed',
+            error: error.message,
+            failedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+    }
+}
+
+function replaceSmsTemplateVariables(template, contactData) {
+    let message = template;
+    
+    message = message.replace(/\{\{name\}\}/g, contactData.name || 'there');
+    message = message.replace(/\{\{firstName\}\}/g, contactData.name ? contactData.name.split(' ')[0] : 'there');
+    message = message.replace(/\{\{email\}\}/g, contactData.email || '');
+    message = message.replace(/\{\{phone\}\}/g, contactData.phone || '');
+    message = message.replace(/\{\{propertyId\}\}/g, contactData.propertyId || '');
+    message = message.replace(/\{\{company\}\}/g, 'Real InvestCo');
+    
+    return message;
+}
+
+// Function to sync contact to Brevo
+exports.syncContactToBrevo = functions.https.onRequest(async (req, res) => {
+  // Enable CORS
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  try {
+    const { email, name, phone, attributes } = req.body;
+    
+    if (!email) {
+      return res.status(400).json({ error: 'Email is required' });
+    }
+
+    // Set the API key for this request
+    const brevoApiKey = functions.config().brevo.key;
+    if (!brevoApiKey) {
+      console.error('Brevo API key not configured');
+      return res.status(500).json({ error: 'Brevo API key not configured' });
+    }
+    
+    apiKey.apiKey = brevoApiKey;
+    
+    // Create contact in Brevo
+    const contactsApi = new SibApiV3Sdk.ContactsApi();
+    const createContact = new SibApiV3Sdk.CreateContact();
+    
+    createContact.email = email;
+    // Format phone number for Brevo (remove non-digits and ensure proper format)
+    let formattedPhone = '';
+    if (phone) {
+      // Remove all non-digit characters
+      const digitsOnly = phone.replace(/\D/g, '');
+      // If it starts with 1, remove it (US country code)
+      if (digitsOnly.length === 11 && digitsOnly.startsWith('1')) {
+        formattedPhone = digitsOnly.substring(1);
+      } else if (digitsOnly.length === 10) {
+        formattedPhone = digitsOnly;
+      } else {
+        formattedPhone = digitsOnly; // Let Brevo handle validation
+      }
+    }
+
+    createContact.attributes = {
+      FIRSTNAME: name ? name.split(' ')[0] : '',
+      LASTNAME: name ? name.split(' ').slice(1).join(' ') : '',
+      // SMS: formattedPhone, // Temporarily disabled due to phone number validation issues
+      ...attributes
+    };
+    
+    // Add to list if newsletter is subscribed
+    if (attributes && attributes.newsletter) {
+      createContact.listIds = [1]; // Replace with your actual list ID
+    }
+    
+    try {
+      const result = await contactsApi.createContact(createContact);
+      console.log('Contact created in Brevo:', result);
+      res.status(200).json({ 
+        success: true, 
+        message: 'Contact synced to Brevo successfully',
+        brevoId: result.id 
+      });
+    } catch (brevoError) {
+      // If contact already exists, update it
+      if (brevoError.status === 400 && brevoError.body && brevoError.body.message && 
+          (brevoError.body.message.includes('already exists') || 
+           brevoError.body.message.includes('already associated with another Contact'))) {
+        console.log('Contact already exists, updating...');
+        
+        const updateContact = new SibApiV3Sdk.UpdateContact();
+        updateContact.attributes = createContact.attributes;
+        
+        await contactsApi.updateContact(email, updateContact);
+        res.status(200).json({ 
+          success: true, 
+          message: 'Contact updated in Brevo successfully' 
+        });
+      } else {
+        throw brevoError;
+      }
+    }
+    
+  } catch (error) {
+    console.error('Error syncing contact to Brevo:', error);
+    res.status(500).json({ 
+      error: 'Failed to sync contact to Brevo: ' + error.message 
+    });
+  }
+});
+
+// Delete contact from Brevo
+exports.deleteContactFromBrevo = functions.https.onRequest(async (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST');
+  res.set('Access-Control-Allow-Headers', 'Content-Type');
+  if (req.method === 'OPTIONS') { res.status(204).send(''); return; }
+
+  try {
+    const { email } = req.body;
+    if (!email) { return res.status(400).json({ error: 'Email is required' }); }
+    
+    const brevoApiKey = functions.config().brevo.key;
+    if (!brevoApiKey) { console.error('Brevo API key not configured'); return res.status(500).json({ error: 'Brevo API key not configured' }); }
+    apiKey.apiKey = brevoApiKey;
+    
+    const contactsApi = new SibApiV3Sdk.ContactsApi();
+    
+    try {
+      await contactsApi.deleteContact(email);
+      console.log('Contact deleted from Brevo:', email);
+      res.status(200).json({ success: true, message: 'Contact deleted from Brevo successfully' });
+    } catch (brevoError) {
+      if (brevoError.status === 404) {
+        console.log('Contact not found in Brevo:', email);
+        res.status(200).json({ success: true, message: 'Contact not found in Brevo (already deleted)' });
+      } else {
+        throw brevoError;
+      }
+    }
+  } catch (error) {
+    console.error('Error deleting contact from Brevo:', error);
+    res.status(500).json({ error: 'Failed to delete contact from Brevo: ' + error.message });
+  }
+});
+
+// Export PostGrid functions
+exports.syncPostGridTemplates = syncPostGridTemplates;
+exports.syncContactToPostGrid = syncContactToPostGrid;
+exports.syncContactsToPostGrid = syncContactsToPostGrid;
+exports.sendPostGridMail = sendPostGridMail;
+exports.sendPostGridPostcard = sendPostGridPostcard;
+exports.deleteContactFromPostGrid = deleteContactFromPostGrid;
+exports.createReturnAddress = createReturnAddress;
+
+// PPP (Perfect Property Profile) function
+exports.updateContactPPP = functions.https.onRequest(async (req, res) => {
+  // Enable CORS
+  res.set('Access-Control-Allow-Origin', '*');
+  res.set('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
+  res.set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+
+  if (req.method === 'OPTIONS') {
+    res.status(204).send('');
+    return;
+  }
+
+  if (req.method !== 'POST') {
+    res.status(405).json({ error: 'Method not allowed' });
+    return;
+  }
+
+  try {
+    const { contactId, email, phone, pppData } = req.body;
+
+    if (!pppData) {
+      res.status(400).json({ error: 'PPP data is required' });
+      return;
+    }
+
+    let contactDoc = null;
+    let contactIdToUse = contactId;
+
+    // If no contactId provided, try to find by email or phone
+    if (!contactIdToUse) {
+      if (email) {
+        const emailQuery = await db.collection('contacts').where('email', '==', email).get();
+        if (!emailQuery.empty) {
+          contactDoc = emailQuery.docs[0];
+          contactIdToUse = contactDoc.id;
+        }
+      }
+      
+      if (!contactDoc && phone) {
+        // Format phone number for search
+        const formattedPhone = phone.replace(/\D/g, '');
+        const phoneQuery = await db.collection('contacts').where('cellPhone', '==', formattedPhone).get();
+        if (!phoneQuery.empty) {
+          contactDoc = phoneQuery.docs[0];
+          contactIdToUse = contactDoc.id;
+        }
+      }
+    } else {
+      // Get contact by provided ID
+      contactDoc = await db.collection('contacts').doc(contactIdToUse).get();
+    }
+
+    if (!contactDoc || !contactDoc.exists) {
+      res.status(404).json({ error: 'Contact not found' });
+      return;
+    }
+
+    // Update contact with PPP data
+    const updateData = {
+      pppProfile: pppData,
+      pppCompleted: true,
+      pppCompletedAt: admin.firestore.FieldValue.serverTimestamp(),
+      lastUpdated: admin.firestore.FieldValue.serverTimestamp()
+    };
+
+    await db.collection('contacts').doc(contactIdToUse).update(updateData);
+
+    console.log('PPP profile updated for contact:', contactIdToUse);
+
+    res.status(200).json({
+      success: true,
+      message: 'Perfect Property Profile updated successfully',
+      contactId: contactIdToUse
+    });
+
+  } catch (error) {
+    console.error('Error updating PPP profile:', error);
+    res.status(500).json({ 
+      error: 'Failed to update PPP profile',
+      details: error.message 
+    });
+  }
+});
+
+// Export mail campaign functions
+exports.createMailCampaign = createMailCampaign;
+exports.verifyAddress = verifyAddress;
+exports.getMailAnalytics = getMailAnalytics;
+exports.sendMailWebhook = sendMailWebhook;
+exports.triggerAutoMail = triggerAutoMail;
+exports.triggerPropertyMail = triggerPropertyMail;
+
+// Property Notification System - Sends SMS and Email when new property is added
+exports.sendPropertyNotifications = functions.firestore
+    .document('properties/{propertyId}')
+    .onCreate(async (snap, context) => {
+        try {
+            const property = snap.data();
+            const propertyId = context.params.propertyId;
+            
+            console.log(`New property added: ${propertyId}`);
+            console.log(`Property county: ${property.county || 'Not set'}`);
+            
+            // Get property details
+            const propertyDetails = {
+                id: propertyId,
+                address: property.address || property.title || 'Property',
+                county: property.county || null,
+                city: property.city || '',
+                state: property.state || '',
+                price: property.price || property.askingPrice || '',
+                bedrooms: property.bedrooms || '',
+                bathrooms: property.bathrooms || '',
+                squareFeet: property.squareFeet || '',
+                type: property.type || 'Property'
+            };
+            
+            // Find contacts interested in this county
+            let matchingContactsQuery = db.collection('contacts');
+            
+            if (propertyDetails.county) {
+                // Match by county
+                matchingContactsQuery = matchingContactsQuery
+                    .where('countyInterests', 'array-contains', propertyDetails.county)
+                    .where('propertyNotifications', '==', true);
+            } else {
+                // If no county, match contacts with general notifications enabled
+                matchingContactsQuery = matchingContactsQuery
+                    .where('propertyNotifications', '==', true)
+                    .where('generalNotifications', '==', true);
+            }
+            
+            const matchingContactsSnapshot = await matchingContactsQuery.get();
+            
+            if (matchingContactsSnapshot.empty) {
+                console.log('No matching contacts found for property notifications');
+                return null;
+            }
+            
+            console.log(`Found ${matchingContactsSnapshot.size} matching contacts`);
+            
+            // Send notifications to each matching contact
+            const notificationPromises = [];
+            
+            matchingContactsSnapshot.forEach(doc => {
+                const contact = {
+                    id: doc.id,
+                    ...doc.data()
+                };
+                
+                // Send SMS notification
+                if (contact.cellPhone && contact.smsNotifications !== false) {
+                    const smsPromise = sendPropertySmsNotification(contact, propertyDetails);
+                    notificationPromises.push(smsPromise);
+                }
+                
+                // Send Email notification
+                if (contact.email && contact.emailNotifications !== false) {
+                    const emailPromise = sendPropertyEmailNotification(contact, propertyDetails);
+                    notificationPromises.push(emailPromise);
+                }
+            });
+            
+            // Wait for all notifications to be sent
+            const results = await Promise.allSettled(notificationPromises);
+            
+            const successCount = results.filter(r => r.status === 'fulfilled').length;
+            const failureCount = results.filter(r => r.status === 'rejected').length;
+            
+            console.log(`Property notifications sent: ${successCount} successful, ${failureCount} failed`);
+            
+            // Log the notification activity
+            await db.collection('notificationLogs').add({
+                propertyId: propertyId,
+                timestamp: admin.firestore.FieldValue.serverTimestamp(),
+                contactsNotified: matchingContactsSnapshot.size,
+                successCount: successCount,
+                failureCount: failureCount,
+                propertyCounty: propertyDetails.county,
+                type: 'property_notification'
+            });
+            
+            return null;
+            
+        } catch (error) {
+            console.error('Error in sendPropertyNotifications:', error);
+            return null;
+        }
+    });
+
+// Helper function to send SMS notification for new properties
+async function sendPropertySmsNotification(contact, property) {
+    try {
+        const sibApi = require('sib-api-v3-sdk');
+        const defaultClient = sibApi.ApiClient.instance;
+        const apiKey = defaultClient.authentications['api-key'];
+        apiKey.apiKey = functions.config().brevo.key;
+        
+        const apiInstance = new sibApi.TransactionalSMSApi();
+        
+        // Build SMS message
+        let message = `New ${property.type} in ${property.county || property.city}! `;
+        message += `${property.bedrooms ? property.bedrooms + 'BR/' : ''}`;
+        message += `${property.bathrooms ? property.bathrooms + 'BA ' : ''}`;
+        message += `$${property.price}`;
+        message += `\n\nView: https://realinvestco.vercel.app/property.html?id=${property.id}`;
+        message += `\n\n- Real InvestCo`;
+        
+        // Send SMS
+        const smsData = {
+            type: 'transactional',
+            unicodeEnabled: false,
+            recipient: contact.cellPhone.replace(/\D/g, ''),
+            sender: 'RealInvest',
+            content: message
+        };
+        
+        await apiInstance.sendTransacSms(smsData);
+        
+        console.log(`SMS notification sent to ${contact.cellPhone}`);
+        return { success: true, type: 'sms' };
+        
+    } catch (error) {
+        console.error(`Error sending SMS to ${contact.cellPhone}:`, error);
+        return { success: false, type: 'sms', error: error.message };
+    }
+}
+
+// Helper function to send Email notification for new properties
+async function sendPropertyEmailNotification(contact, property) {
+    try {
+        const sibApi = require('sib-api-v3-sdk');
+        const defaultClient = sibApi.ApiClient.instance;
+        const apiKey = defaultClient.authentications['api-key'];
+        apiKey.apiKey = functions.config().brevo.key;
+        
+        const apiInstance = new sibApi.TransactionalEmailsApi();
+        
+        // Build email HTML
+        const emailHtml = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <meta charset="utf-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>New Property Alert - Real InvestCo</title>
+            </head>
+            <body style="margin: 0; padding: 0; font-family: Arial, sans-serif; background-color: #f4f6fb;">
+                <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; padding: 20px;">
+                    <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #1A237E;">
+                        <h1 style="color: #1A237E; margin: 10px 0 0 0; font-size: 24px;">Real InvestCo</h1>
+                    </div>
+                    
+                    <div style="padding: 30px 20px;">
+                        <h2 style="color: #1A237E; margin-bottom: 20px;">Hi ${contact.name || 'there'},</h2>
+                        
+                        <p style="color: #333; line-height: 1.6; margin-bottom: 20px;">
+                            Great news! A new property matching your interests has just been added:
+                        </p>
+                        
+                        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
+                            <h3 style="color: #1A237E; margin: 0 0 15px 0;">${property.address}</h3>
+                            ${property.city && property.state ? `<p style="color: #666; margin: 5px 0;">${property.city}, ${property.state}</p>` : ''}
+                            ${property.county ? `<p style="color: #666; margin: 5px 0;">County: ${property.county}</p>` : ''}
+                            ${property.price ? `<p style="color: #1A237E; font-size: 24px; font-weight: bold; margin: 15px 0;">$${property.price}</p>` : ''}
+                            ${property.bedrooms || property.bathrooms ? `<p style="color: #666; margin: 5px 0;">${property.bedrooms || ''} Bed / ${property.bathrooms || ''} Bath</p>` : ''}
+                            ${property.squareFeet ? `<p style="color: #666; margin: 5px 0;">${property.squareFeet} sqft</p>` : ''}
+                        </div>
+                        
+                        <div style="text-align: center; margin: 30px 0;">
+                            <a href="https://realinvestco.vercel.app/property.html?id=${property.id}" 
+                               style="background-color: #1A237E; color: #ffffff; padding: 12px 24px; text-decoration: none; border-radius: 6px; display: inline-block;">
+                                View Property Details
+                            </a>
+                        </div>
+                        
+                        <p style="color: #333; line-height: 1.6; margin-bottom: 0;">
+                            Best regards,<br>
+                            <strong>Real InvestCo Team</strong>
+                        </p>
+                    </div>
+                    
+                    <div style="background-color: #f8f9fa; padding: 20px; text-align: center; border-top: 1px solid #e9ecef;">
+                        <p style="color: #666; margin: 0 0 10px 0; font-size: 14px;">
+                            <strong>Real InvestCo</strong><br>
+                            Your trusted partner in real estate investment
+                        </p>
+                    </div>
+                </div>
+            </body>
+            </html>
+        `;
+        
+        const sendSmtpEmail = {
+            to: [{ email: contact.email, name: contact.name || 'Customer' }],
+            sender: { email: 'rich@realinvestco.com', name: 'Real InvestCo' },
+            subject: `New Property Alert - ${property.address}`,
+            htmlContent: emailHtml
+        };
+        
+        await apiInstance.sendTransacEmail(sendSmtpEmail);
+        
+        console.log(`Email notification sent to ${contact.email}`);
+        return { success: true, type: 'email' };
+        
+    } catch (error) {
+        console.error(`Error sending email to ${contact.email}:`, error);
+        return { success: false, type: 'email', error: error.message };
+    }
+}
