@@ -456,7 +456,13 @@
                     
                     snapshot = null;
                     for (const phoneFormat of phoneVariations) {
+                        // Try both cellPhone and phone fields
                         query = db.collection('contacts').where('cellPhone', '==', phoneFormat);
+                        snapshot = await query.get();
+                        if (!snapshot.empty) {
+                            break;
+                        }
+                        query = db.collection('contacts').where('phone', '==', phoneFormat);
                         snapshot = await query.get();
                         if (!snapshot.empty) {
                             break;
