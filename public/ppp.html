@@ -408,16 +408,19 @@
     <script>
         // Firebase configuration
         const firebaseConfig = {
-            apiKey: "AIzaSyBvQZvQZvQZvQZvQZvQZvQZvQZvQZvQZvQ",
+            apiKey: "AIzaSyDXifeppD7kBgpgwu74Aa-5h6t_4ieFwq0",
             authDomain: "realinvestco-web.firebaseapp.com",
             projectId: "realinvestco-web",
-            storageBucket: "realinvestco-web.appspot.com",
-            messagingSenderId: "123456789",
-            appId: "1:123456789:web:abcdef123456789"
+            storageBucket: "realinvestco-web.firebasestorage.app",
+            messagingSenderId: "1021426656860",
+            appId: "1:1021426656860:web:1a1f9cb16b3f0a2158a899",
+            measurementId: "G-X30NR9MZGP"
         };
 
         // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
         const db = firebase.firestore();
 
         let currentContact = null;
@@ -436,18 +439,32 @@
 
             try {
                 let query = db.collection('contacts');
+                let snapshot;
                 
                 if (email) {
                     query = query.where('email', '==', email);
+                    snapshot = await query.get();
                 } else {
-                    // Format phone number for search
-                    const formattedPhone = phone.replace(/\D/g, '');
-                    query = query.where('cellPhone', '==', formattedPhone);
+                    // Try phone number in multiple formats
+                    const phoneVariations = [
+                        phone, // Original format
+                        phone.replace(/\D/g, ''), // Remove all non-digits
+                        phone.replace(/\D/g, '').replace(/^1/, ''), // Remove leading 1
+                        phone.replace(/\D/g, '').replace(/^1/, '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3'), // XXX-XXX-XXXX
+                        phone.replace(/\D/g, '').replace(/^1/, '').replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3'), // (XXX) XXX-XXXX
+                    ];
+                    
+                    snapshot = null;
+                    for (const phoneFormat of phoneVariations) {
+                        query = db.collection('contacts').where('cellPhone', '==', phoneFormat);
+                        snapshot = await query.get();
+                        if (!snapshot.empty) {
+                            break;
+                        }
+                    }
                 }
-
-                const snapshot = await query.get();
                 
-                if (snapshot.empty) {
+                if (!snapshot || snapshot.empty) {
                     showError('No contact found with that email or phone number. Please check your information and try again.');
                     return;
                 }
