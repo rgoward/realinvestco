@@ -796,17 +796,17 @@
           } else {
             console.log('Confirmation email sent successfully using Brevo template', templateId);
             
-            // Track when template #9 is sent (PPP prompt email)
-            if (templateId === 9 && contactId) {
+            // Track when template #9 (Web Up) or #11 (CA) is sent (PPP prompt emails)
+            if ((templateId === 9 || templateId === 11) && contactId) {
               try {
                 await db.collection('contacts').doc(contactId).update({
                   pppPromptEmailSent: true,
                   pppPromptEmailSentAt: firebase.firestore.FieldValue.serverTimestamp(),
-                  lastEmailTemplateId: 9
+                  lastEmailTemplateId: templateId
                 });
-                console.log('Tracked template #9 sent for contact:', contactId);
+                console.log(`Tracked template #${templateId} sent for contact:`, contactId);
               } catch (trackError) {
-                console.error('Error tracking template #9 sent:', trackError);
+                console.error(`Error tracking template #${templateId} sent:`, trackError);
                 // Don't fail the form submission if tracking fails
               }
             }

@@ -2309,11 +2309,13 @@ exports.updateContactPPP = functions.https.onRequest(async (req, res) => {
       return;
     }
 
-    // Get contact data to check if template #9 was previously sent
+    // Get contact data to check if template #9 (Web Up) or #11 (CA) was previously sent
     const contactData = contactDoc.data();
     const wasPromptedForPPP = contactData.pppPromptEmailSent || 
                                contactData.lastEmailTemplateId === 9 ||
-                               contactData.template9Sent === true;
+                               contactData.lastEmailTemplateId === 11 ||
+                               contactData.template9Sent === true ||
+                               contactData.template11Sent === true;
 
     // Update contact with PPP data
     const updateData = {
@@ -2327,10 +2329,10 @@ exports.updateContactPPP = functions.https.onRequest(async (req, res) => {
 
     console.log('PPP profile updated for contact:', contactIdToUse);
 
-    // If contact was previously prompted with template #9, send follow-up template #26
+    // If contact was previously prompted with template #9 or #11, send follow-up template #26
     if (wasPromptedForPPP && contactData.email) {
       try {
-        console.log('Contact was prompted with template #9, sending follow-up template #26');
+        console.log(`Contact was prompted with template #${contactData.lastEmailTemplateId || 9}, sending follow-up template #26`);
         
         const brevoApiKey = functions.config().brevo.key;
         if (brevoApiKey) {
