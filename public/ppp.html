@@ -446,12 +446,13 @@
                     snapshot = await query.get();
                 } else {
                     // Try phone number in multiple formats
+                    const digitsOnly = phone.replace(/\D/g, '').replace(/^1/, '');
                     const phoneVariations = [
                         phone, // Original format
-                        phone.replace(/\D/g, ''), // Remove all non-digits
-                        phone.replace(/\D/g, '').replace(/^1/, ''), // Remove leading 1
-                        phone.replace(/\D/g, '').replace(/^1/, '').replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3'), // XXX-XXX-XXXX
-                        phone.replace(/\D/g, '').replace(/^1/, '').replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3'), // (XXX) XXX-XXXX
+                        digitsOnly, // Digits only (8054323524)
+                        digitsOnly.replace(/(\d{3})(\d{3})(\d{4})/, '$1 $2 $3'), // XXX XXX XXXX with spaces
+                        digitsOnly.replace(/(\d{3})(\d{3})(\d{4})/, '$1-$2-$3'), // XXX-XXX-XXXX
+                        digitsOnly.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3'), // (XXX) XXX-XXXX
                     ];
                     
                     console.log('Phone variations:', phoneVariations);
