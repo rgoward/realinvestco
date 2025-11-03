@@ -2309,6 +2309,12 @@ exports.updateContactPPP = functions.https.onRequest(async (req, res) => {
       return;
     }
 
+    // Get contact data to check if template #9 was previously sent
+    const contactData = contactDoc.data();
+    const wasPromptedForPPP = contactData.pppPromptEmailSent || 
+                               contactData.lastEmailTemplateId === 9 ||
+                               contactData.template9Sent === true;
+
     // Update contact with PPP data
     const updateData = {
       pppProfile: pppData,
@@ -2321,10 +2327,52 @@ exports.updateContactPPP = functions.https.onRequest(async (req, res) => {
 
     console.log('PPP profile updated for contact:', contactIdToUse);
 
+    // If contact was previously prompted with template #9, send follow-up template #26
+    if (wasPromptedForPPP && contactData.email) {
+      try {
+        console.log('Contact was prompted with template #9, sending follow-up template #26');
+        
+        const brevoApiKey = functions.config().brevo.key;
+        if (brevoApiKey) {
+          apiKey.apiKey = brevoApiKey;
+          
+          const transactionalApi = new SibApiV3Sdk.TransactionalEmailsApi();
+          const nameParts = (contactData.name || '').split(' ');
+          const firstName = nameParts[0] || '';
+          const lastName = nameParts.slice(1).join(' ') || '';
+          
+          const sendSmtpEmail = new SibApiV3Sdk.SendSmtpEmail();
+          sendSmtpEmail.to = [{ email: contactData.email, name: contactData.name || '' }];
+          sendSmtpEmail.templateId = 26;
+          sendSmtpEmail.params = {
+            FIRSTNAME: firstName,
+            LASTNAME: lastName,
+            NAME: contactData.name || ''
+          };
+          sendSmtpEmail.subject = 'Thank you for completing your Property Profile - Real InvestCo';
+          
+          await transactionalApi.sendTransacEmail(sendSmtpEmail);
+          
+          console.log('Follow-up template #26 sent successfully to:', contactData.email);
+          
+          // Track that template #26 was sent
+          await db.collection('contacts').doc(contactIdToUse).update({
+            pppFollowUpEmailSent: true,
+            pppFollowUpEmailSentAt: admin.firestore.FieldValue.serverTimestamp(),
+            lastEmailTemplateId: 26
+          });
+        }
+      } catch (emailError) {
+        console.error('Error sending follow-up template #26:', emailError);
+        // Don't fail the PPP update if email fails
+      }
+    }
+
     res.status(200).json({
       success: true,
       message: 'Perfect Property Profile updated successfully',
-      contactId: contactIdToUse
+      contactId: contactIdToUse,
+      followUpEmailSent: wasPromptedForPPP || false
     });
 
   } catch (error) {
