@@ -2394,12 +2394,23 @@ exports.updateContactPPP = functions.https.onRequest(async (req, res) => {
       });
     }
 
-    res.status(200).json({
+    const responseData = {
       success: true,
       message: 'Perfect Property Profile updated successfully',
       contactId: contactIdToUse,
-      followUpEmailSent: wasPromptedForPPP || false
-    });
+      followUpEmailSent: wasPromptedForPPP && !!contactData.email ? true : false,
+      debug: {
+        wasPromptedForPPP: wasPromptedForPPP,
+        hasEmail: !!contactData.email,
+        email: contactData.email || null,
+        pppPromptEmailSent: contactData.pppPromptEmailSent || false,
+        lastEmailTemplateId: contactData.lastEmailTemplateId || null
+      }
+    };
+    
+    console.log('Sending response:', responseData);
+    
+    res.status(200).json(responseData);
 
   } catch (error) {
     console.error('Error updating PPP profile:', error);
