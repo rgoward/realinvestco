@@ -797,17 +797,38 @@
             console.log('Confirmation email sent successfully using Brevo template', templateId);
             
             // Track when template #9 (Web Up) or #11 (CA) is sent (PPP prompt emails)
-            if ((templateId === 9 || templateId === 11) && contactId) {
-              try {
-                await db.collection('contacts').doc(contactId).update({
-                  pppPromptEmailSent: true,
-                  pppPromptEmailSentAt: firebase.firestore.FieldValue.serverTimestamp(),
-                  lastEmailTemplateId: templateId
-                });
-                console.log(`Tracked template #${templateId} sent for contact:`, contactId);
-              } catch (trackError) {
-                console.error(`Error tracking template #${templateId} sent:`, trackError);
-                // Don't fail the form submission if tracking fails
+            if ((templateId === 9 || templateId === 11)) {
+              if (contactId) {
+                try {
+                  await db.collection('contacts').doc(contactId).update({
+                    pppPromptEmailSent: true,
+                    pppPromptEmailSentAt: firebase.firestore.FieldValue.serverTimestamp(),
+                    lastEmailTemplateId: templateId
+                  });
+                  console.log(`✅ Tracked template #${templateId} sent for contact:`, contactId);
+                } catch (trackError) {
+                  console.error(`❌ Error tracking template #${templateId} sent:`, trackError);
+                  // Don't fail the form submission if tracking fails
+                }
+              } else {
+                console.warn(`⚠️ Template #${templateId} sent but contactId is not available. Cannot track for follow-up.`);
+                // Try to find contact by email as fallback
+                if (formData.email) {
+                  try {
+                    const emailQuery = await db.collection('contacts').where('email', '==', formData.email).limit(1).get();
+                    if (!emailQuery.empty) {
+                      const foundContactId = emailQuery.docs[0].id;
+                      await db.collection('contacts').doc(foundContactId).update({
+                        pppPromptEmailSent: true,
+                        pppPromptEmailSentAt: firebase.firestore.FieldValue.serverTimestamp(),
+                        lastEmailTemplateId: templateId
+                      });
+                      console.log(`✅ Tracked template #${templateId} sent (found by email) for contact:`, foundContactId);
+                    }
+                  } catch (fallbackError) {
+                    console.error(`❌ Error in fallback tracking:`, fallbackError);
+                  }
+                }
               }
             }
           }

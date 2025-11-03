@@ -2311,11 +2311,23 @@ exports.updateContactPPP = functions.https.onRequest(async (req, res) => {
 
     // Get contact data to check if template #9 (Web Up) or #11 (CA) was previously sent
     const contactData = contactDoc.data();
+    
+    console.log('Checking for PPP prompt - Contact data:', {
+      email: contactData.email,
+      name: contactData.name,
+      pppPromptEmailSent: contactData.pppPromptEmailSent,
+      lastEmailTemplateId: contactData.lastEmailTemplateId,
+      template9Sent: contactData.template9Sent,
+      template11Sent: contactData.template11Sent
+    });
+    
     const wasPromptedForPPP = contactData.pppPromptEmailSent || 
                                contactData.lastEmailTemplateId === 9 ||
                                contactData.lastEmailTemplateId === 11 ||
                                contactData.template9Sent === true ||
                                contactData.template11Sent === true;
+
+    console.log('Was prompted for PPP:', wasPromptedForPPP);
 
     // Update contact with PPP data
     const updateData = {
@@ -2331,6 +2343,7 @@ exports.updateContactPPP = functions.https.onRequest(async (req, res) => {
 
     // If contact was previously prompted with template #9 or #11, send follow-up template #26
     if (wasPromptedForPPP && contactData.email) {
+      console.log('Conditions met - will send template #26 follow-up');
       try {
         console.log(`Contact was prompted with template #${contactData.lastEmailTemplateId || 9}, sending follow-up template #26`);
         
@@ -2366,8 +2379,19 @@ exports.updateContactPPP = functions.https.onRequest(async (req, res) => {
         }
       } catch (emailError) {
         console.error('Error sending follow-up template #26:', emailError);
+        console.error('Error details:', {
+          message: emailError.message,
+          stack: emailError.stack,
+          response: emailError.response?.data
+        });
         // Don't fail the PPP update if email fails
       }
+    } else {
+      console.log('NOT sending template #26 - Conditions not met:', {
+        wasPromptedForPPP: wasPromptedForPPP,
+        hasEmail: !!contactData.email,
+        email: contactData.email
+      });
     }
 
     res.status(200).json({
