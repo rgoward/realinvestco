@@ -456,15 +456,18 @@
                     
                     snapshot = null;
                     for (const phoneFormat of phoneVariations) {
+                        console.log('Trying phone format:', phoneFormat);
                         // Try both cellPhone and phone fields
                         query = db.collection('contacts').where('cellPhone', '==', phoneFormat);
                         snapshot = await query.get();
                         if (!snapshot.empty) {
+                            console.log('Found with cellPhone field:', phoneFormat);
                             break;
                         }
                         query = db.collection('contacts').where('phone', '==', phoneFormat);
                         snapshot = await query.get();
                         if (!snapshot.empty) {
+                            console.log('Found with phone field:', phoneFormat);
                             break;
                         }
                     }
