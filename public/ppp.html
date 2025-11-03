@@ -455,37 +455,19 @@
                         digitsOnly.replace(/(\d{3})(\d{3})(\d{4})/, '($1) $2-$3'), // (XXX) XXX-XXXX
                     ];
                     
-                    console.log('Phone variations:', phoneVariations);
                     snapshot = null;
                     for (const phoneFormat of phoneVariations) {
-                        console.log('Trying phone format:', phoneFormat);
                         // Try both cellPhone and phone fields
                         query = db.collection('contacts').where('cellPhone', '==', phoneFormat);
                         snapshot = await query.get();
                         if (!snapshot.empty) {
-                            console.log('Found with cellPhone field:', phoneFormat);
-                            console.log('Contact data:', snapshot.docs[0].data());
                             break;
                         }
                         query = db.collection('contacts').where('phone', '==', phoneFormat);
                         snapshot = await query.get();
                         if (!snapshot.empty) {
-                            console.log('Found with phone field:', phoneFormat);
-                            console.log('Contact data:', snapshot.docs[0].data());
                             break;
                         }
-                    }
-                    
-                    // If still not found, log all contacts with phone numbers for debugging
-                    if (!snapshot || snapshot.empty) {
-                        console.log('No match found. Fetching all contacts to debug...');
-                        const allContacts = await db.collection('contacts').get();
-                        allContacts.forEach(doc => {
-                            const data = doc.data();
-                            if (data.cellPhone || data.phone) {
-                                console.log('Contact:', data.name, '- cellPhone:', data.cellPhone, '- phone:', data.phone);
-                            }
-                        });
                     }
                 }
                 
