@@ -427,8 +427,23 @@
       const pppCounty = document.getElementById('pppCounty').value;
       const pppCity = document.getElementById('pppCity').value;
       
-      // Check if any required PPP fields are filled out
-      const pppCompleted = pppBedrooms || pppBathrooms || pppSquareFootageFrom || pppSquareFootageTo || pppCounty || pppCity;
+      // Check if any required PPP fields are filled out (must have actual value, not just empty string)
+      const pppCompleted = (pppBedrooms && pppBedrooms.trim()) || 
+                           (pppBathrooms && pppBathrooms.trim()) || 
+                           (pppSquareFootageFrom && pppSquareFootageFrom.trim()) || 
+                           (pppSquareFootageTo && pppSquareFootageTo.trim()) || 
+                           (pppCounty && pppCounty.trim()) || 
+                           (pppCity && pppCity.trim());
+      
+      console.log('PPP Completion Check:', {
+        pppBedrooms,
+        pppBathrooms,
+        pppSquareFootageFrom,
+        pppSquareFootageTo,
+        pppCounty,
+        pppCity,
+        pppCompleted
+      });
       
       if (pppCompleted) {
         const pppData = {
